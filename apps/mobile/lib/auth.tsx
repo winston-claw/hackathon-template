@@ -1,13 +1,14 @@
 "use client";
 
+import * as SecureStore from "expo-secure-store";
 import {
   createAuthProvider,
-  createLocalStorageTokenStore,
+  createSecureStoreTokenStore,
   type AuthApi,
 } from "@project-template/auth";
 import { api } from "@project-template/db/api";
 
-const tokenStore = createLocalStorageTokenStore();
+const tokenStore = createSecureStoreTokenStore(SecureStore);
 const { AuthProvider: BaseAuthProvider, useAuth: useAuthBase } =
   createAuthProvider(api as AuthApi, tokenStore);
 

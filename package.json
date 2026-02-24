@@ -1,24 +1,31 @@
 {
-  "name": "hackathon-template",
+  "name": "project-template",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "autoprefixer": "10.4.19",
-    "clsx": "2.1.1",
-    "convex": "^1.12.0",
-    "next": "14.2.3",
-    "postcss": "8.4.38",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "tailwind-merge": "2.4.0",
-    "tailwindcss": "3.4.3"
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=web",
+    "dev:web": "npm run dev --workspace=web",
+    "dev:mobile": "npm run dev --workspace=mobile",
+    "build": "npm run build --workspace=web",
+    "build:web": "npm run build --workspace=web",
+    "build:mobile": "npm run build --workspace=mobile",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
-    "@types/node": "20.10.0",
-    "@types/react": "18.3.3",
-    "@types/react-dom": "18.3.0",
-    "eslint": "8.57.0",
-    "eslint-config-next": "14.2.3",
+    "convex": "^1.31.7",
     "typescript": "5.3.3"
+  },
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "expo-constants": "~18.0.13"
   }
 }

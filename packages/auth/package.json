@@ -1,0 +1,22 @@
+{
+  "name": "@project-template/auth",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./adapters": "./adapters/index.ts"
+  },
+  "peerDependencies": {
+    "convex": "^1.12.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "convex": "^1.31.7",
+    "react": "^18.3.1 || ^19.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.3.3"
+  }
+}
