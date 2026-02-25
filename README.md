@@ -26,7 +26,9 @@ To create a new project with its own Convex deployment and Vercel project in one
    ```
 3. When prompted, enter the **project display name** (e.g. `My Awesome App`) and optionally the **bundle ID prefix** (e.g. `com.mycompany`; default is `com.<slug>`).
 
-The script will create a new Convex project (with a dev deployment), create a new Vercel project, replace the template name and package scope everywhere, set Expo app name/slug/scheme and iOS/Android bundle IDs, write `apps/web/.env.local` and `apps/mobile/.env` with the Convex URL, and run `npm install`.
+The script will create a new Convex project (with a dev deployment), create a new Vercel project, replace the template name and package scope everywhere, set Expo app name/slug/scheme and iOS/Android bundle IDs, write `apps/web/.env.local` and `apps/mobile/.env` with the Convex URL, run `npm install`, deploy the Convex backend, and deploy the web app to Vercel (production).
+
+To deploy again after init (without re-creating projects or re-prompting), run **`npm run deploy`** (or `npm run init -- --deploy`). You need `VERCEL_TOKEN` set; Convex uses your existing link from `convex dev` or `CONVEX_DEPLOY_KEY`.
 
 ## Quick Start
 
@@ -109,7 +111,8 @@ Auth is implemented in `convex/auth.ts` and shared UI logic in `@project-templat
 
 | Script | Description |
 |--------|-------------|
-| `npm run init` | Create new Convex + Vercel project, rename template, write env files (requires `CONVEX_TOKEN`, `VERCEL_TOKEN`) |
+| `npm run init` | Create new Convex + Vercel project, rename template, write env files, deploy Convex + Vercel (requires `CONVEX_TOKEN`, `VERCEL_TOKEN`) |
+| `npm run deploy` | Deploy Convex backend and web app to Vercel (for already-inited projects; requires `VERCEL_TOKEN`, Convex linked via `convex dev` or `CONVEX_DEPLOY_KEY`) |
 | `npm run dev` / `npm run dev:web` | Start Next.js dev server |
 | `npm run dev:mobile` | Start Expo dev server |
 | `npm run convex:dev` | Run Convex dev (backend + codegen) |

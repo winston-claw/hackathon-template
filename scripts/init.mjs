@@ -4,7 +4,11 @@
  * Project init CLI: bootstraps a new project from this template.
  * Requires CONVEX_TOKEN and VERCEL_TOKEN in the environment.
  *
- * Usage: node scripts/init.mjs   or   npm run init
+ * Usage:
+ *   node scripts/init.mjs           full init (create projects, rename, deploy)
+ *   node scripts/init.mjs --deploy   deploy only (Convex + Vercel), for already-inited projects
+ *
+ * Or: npm run init   /   npm run deploy
  */
 
 import { createInterface } from "readline";
@@ -15,6 +19,8 @@ import { spawn } from "child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
+
+const DEPLOY_ONLY = process.argv.includes("--deploy");
 
 const rl = createInterface({ input: process.stdin, output: process.stdout });
 const question = (q) => new Promise((resolve) => rl.question(q, resolve));
@@ -34,7 +40,66 @@ function compact(name) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+async function runDeployOnly() {
+  console.log("Deploy only – Convex + Vercel\n");
+
+  const vercelToken = process.env.VERCEL_TOKEN;
+  if (!vercelToken) {
+    console.error("Missing VERCEL_TOKEN. Set it for Vercel deploy.");
+    process.exit(1);
+  }
+
+  console.log("Deploying to Convex...");
+  try {
+    await new Promise((resolve, reject) => {
+      const child = spawn("npx", ["convex", "deploy"], {
+        cwd: ROOT,
+        stdio: "inherit",
+        shell: true,
+      });
+      child.on("exit", (code) =>
+        code === 0 ? resolve() : reject(new Error("convex deploy failed"))
+      );
+    });
+    console.log("Convex deploy done.");
+  } catch (e) {
+    console.error("Convex deploy failed:", e.message);
+    process.exit(1);
+  }
+
+  const webDir = path.join(ROOT, "apps/web");
+  console.log("\nDeploying to Vercel...");
+  try {
+    await new Promise((resolve, reject) => {
+      const child = spawn(
+        "npx",
+        ["vercel", "deploy", "--prod", "--yes"],
+        {
+          cwd: webDir,
+          stdio: "inherit",
+          shell: true,
+          env: { ...process.env, VERCEL_TOKEN: vercelToken },
+        }
+      );
+      child.on("exit", (code) =>
+        code === 0 ? resolve() : reject(new Error("vercel deploy failed"))
+      );
+    });
+    console.log("Vercel deploy done.");
+  } catch (e) {
+    console.error("Vercel deploy failed:", e.message);
+    process.exit(1);
+  }
+
+  console.log("\nDone.");
+}
+
 async function main() {
+  if (DEPLOY_ONLY) {
+    await runDeployOnly();
+    return;
+  }
+
   console.log("Project init – Convex + Vercel + template renames\n");
 
   const convexToken = process.env.CONVEX_TOKEN;
@@ -69,6 +134,7 @@ async function main() {
 
   // --- Convex: get team ID then create project ---
   let convexUrl = null;
+  let deploymentName = null;
   try {
     const tokenRes = await fetch("https://api.convex.dev/v1/token_details", {
       headers: { Authorization: `Bearer ${convexToken}` },
@@ -103,6 +169,7 @@ async function main() {
     }
     const createData = await createRes.json();
     convexUrl = createData.deploymentUrl || null;
+    deploymentName = createData.deploymentName || null;
     if (convexUrl) {
       console.log("Convex project created. Deployment URL:", convexUrl);
     } else {
@@ -217,9 +284,115 @@ async function main() {
     child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error("npm install failed"))));
   });
 
+  // --- Deploy to Convex ---
+  if (deploymentName && convexUrl) {
+    console.log("\nDeploying to Convex...");
+    try {
+      const keyRes = await fetch(
+        `https://api.convex.dev/v1/deployments/${encodeURIComponent(deploymentName)}/create_deploy_key`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${convexToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: "init-script" }),
+        }
+      );
+      if (!keyRes.ok) {
+        const t = await keyRes.text();
+        throw new Error(`Convex create_deploy_key failed: ${keyRes.status} ${t}`);
+      }
+      const keyData = await keyRes.json();
+      const deployKey = keyData.deployKey;
+      if (!deployKey) throw new Error("No deployKey in response");
+
+      await new Promise((resolve, reject) => {
+        const child = spawn("npx", ["convex", "deploy"], {
+          cwd: ROOT,
+          stdio: "inherit",
+          shell: true,
+          env: { ...process.env, CONVEX_DEPLOY_KEY: deployKey },
+        });
+        child.on("exit", (code) =>
+          code === 0 ? resolve() : reject(new Error("convex deploy failed"))
+        );
+      });
+      console.log("Convex deploy done.");
+    } catch (e) {
+      console.error("Convex deploy failed:", e.message);
+    }
+  }
+
+  // --- Add Convex URL to Vercel project env, then deploy ---
+  if (convexUrl) {
+    try {
+      const envRes = await fetch(
+        `https://api.vercel.com/v10/projects/${encodeURIComponent(slug)}/env`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${vercelToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            key: "NEXT_PUBLIC_CONVEX_URL",
+            value: convexUrl,
+            type: "plain",
+            target: ["production", "preview", "development"],
+          }),
+        }
+      );
+      if (!envRes.ok) {
+        const t = await envRes.text();
+        console.warn("Vercel env var failed (continuing):", envRes.status, t);
+      }
+    } catch (e) {
+      console.warn("Vercel env var failed (continuing):", e.message);
+    }
+  }
+
+  console.log("\nDeploying to Vercel...");
+  const webDir = path.join(ROOT, "apps/web");
+  try {
+    // Link to the project we created so deploy goes to it
+    await new Promise((resolve, reject) => {
+      const child = spawn(
+        "npx",
+        ["vercel", "link", "--project", slug, "--yes"],
+        {
+          cwd: webDir,
+          stdio: "inherit",
+          shell: true,
+          env: { ...process.env, VERCEL_TOKEN: vercelToken },
+        }
+      );
+      child.on("exit", (code) =>
+        code === 0 ? resolve() : reject(new Error("vercel link failed"))
+      );
+    });
+    await new Promise((resolve, reject) => {
+      const child = spawn(
+        "npx",
+        ["vercel", "deploy", "--prod", "--yes"],
+        {
+          cwd: webDir,
+          stdio: "inherit",
+          shell: true,
+          env: { ...process.env, VERCEL_TOKEN: vercelToken },
+        }
+      );
+      child.on("exit", (code) =>
+        code === 0 ? resolve() : reject(new Error("vercel deploy failed"))
+      );
+    });
+    console.log("Vercel deploy done.");
+  } catch (e) {
+    console.error("Vercel deploy failed:", e.message);
+  }
+
   console.log("\nDone. Next steps:");
-  console.log("  1. Run: npm run convex:dev  (then deploy schema)");
-  console.log("  2. Run: npm run dev  (web) or npm run dev:mobile (mobile)");
+  console.log("  1. Run: npm run dev  (web) or npm run dev:mobile (mobile)");
   rl.close();
 }
 

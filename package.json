@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "init": "node scripts/init.mjs",
+    "deploy": "node scripts/init.mjs --deploy",
     "dev": "npm run dev --workspace=web",
     "dev:web": "npm run dev --workspace=web",
     "dev:mobile": "npm run dev --workspace=mobile",
