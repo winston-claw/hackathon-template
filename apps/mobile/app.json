@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Hackathon Template Mobile",
+    "name": "Project Template Mobile",
     "slug": "project-template-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hackathontemplate.mobile"
+      "bundleIdentifier": "com.projecttemplate.mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.hackathontemplate.mobile",
+      "package": "com.projecttemplate.mobile",
       "edgeToEdgeEnabled": true
     },
     "web": {

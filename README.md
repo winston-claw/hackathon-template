@@ -1,6 +1,6 @@
-# Hackathon Template
+# project template
 
-A production-ready hackathon starter template with Next.js 14, Expo (React Native), Convex (auth + database), and Tailwind CSS. Web and mobile share the same Convex backend and auth logic.
+A production-ready project starter template with Next.js 14, Expo (React Native), Convex (auth + database), and Tailwind CSS. Web and mobile share the same Convex backend and auth logic.
 
 ## Features
 
@@ -11,12 +11,31 @@ A production-ready hackathon starter template with Next.js 14, Expo (React Nativ
 - **Tailwind CSS** - Utility-first styling (web)
 - **Vercel** - Production-ready deployment (web)
 
+## Initializing a new project from this template
+
+To create a new project with its own Convex deployment and Vercel project in one go:
+
+1. **Set tokens** (Team Access Token from [Convex dashboard](https://dashboard.convex.dev), and [Vercel token](https://vercel.com/account/tokens)):
+   ```bash
+   export CONVEX_TOKEN="your-convex-team-token"
+   export VERCEL_TOKEN="your-vercel-token"
+   ```
+2. **Run the init script:**
+   ```bash
+   npm run init
+   ```
+3. When prompted, enter the **project display name** (e.g. `My Awesome App`) and optionally the **bundle ID prefix** (e.g. `com.mycompany`; default is `com.<slug>`).
+
+The script will create a new Convex project (with a dev deployment), create a new Vercel project, replace the template name and package scope everywhere, set Expo app name/slug/scheme and iOS/Android bundle IDs, write `apps/web/.env.local` and `apps/mobile/.env` with the Convex URL, and run `npm install`.
+
 ## Quick Start
 
 ```bash
 # Clone the repo
 git clone https://github.com/winston-claw/project-template.git
 cd project-template
+
+# Optional: run npm run init (see above) to create a new Convex + Vercel project and rename the app
 
 # Install dependencies (monorepo: installs all workspaces)
 npm install
@@ -90,6 +109,7 @@ Auth is implemented in `convex/auth.ts` and shared UI logic in `@project-templat
 
 | Script | Description |
 |--------|-------------|
+| `npm run init` | Create new Convex + Vercel project, rename template, write env files (requires `CONVEX_TOKEN`, `VERCEL_TOKEN`) |
 | `npm run dev` / `npm run dev:web` | Start Next.js dev server |
 | `npm run dev:mobile` | Start Expo dev server |
 | `npm run convex:dev` | Run Convex dev (backend + codegen) |

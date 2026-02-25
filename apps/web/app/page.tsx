@@ -61,7 +61,7 @@ export default function Home() {
       {/* Hero */}
       <section style={{ padding: '4rem 2rem', textAlign: 'center', background: '#f8fafc' }}>
         <h1 style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-          Build Faster with Our Hackathon Template
+          Build Faster with Our Project Template
         </h1>
         <p style={{ fontSize: '1.25rem', color: '#64748b', marginBottom: '2rem' }}>
           Next.js 14 + Tailwind + Convex + Better Auth
@@ -114,7 +114,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer style={{ padding: '2rem', textAlign: 'center', borderTop: '1px solid #e2e8f0' }}>
-        <p style={{ color: '#64748b' }}>© 2026 Hackathon Template. Built with Next.js, Tailwind, Convex & Better Auth.</p>
+        <p style={{ color: '#64748b' }}>© 2026 Project Template. Built with Next.js, Tailwind, Convex & Better Auth.</p>
       </footer>
     </div>
   );

@@ -4,7 +4,7 @@ import { Link } from "expo-router";
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Hackathon Template</Text>
+      <Text style={styles.title}>Project Template</Text>
       <Text style={styles.subtitle}>Next.js + Convex + Expo</Text>
       <View style={styles.buttons}>
         <Link href="/signup" asChild>

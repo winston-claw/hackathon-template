@@ -6,8 +6,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Hackathon Template',
-  description: 'A complete Next.js 14 hackathon template with authentication',
+  title: 'project template',
+  description: 'A complete Next.js 14 project template with authentication',
 };
 
 export default function RootLayout({
