@@ -105,15 +105,14 @@ async function runDeployOnly() {
     process.exit(1);
   }
 
-  const webDir = path.join(ROOT, "apps/web");
-  console.log("\nDeploying to Vercel...");
+  console.log("\nDeploying to Vercel (from repo root for workspace install)...");
   try {
     await new Promise((resolve, reject) => {
       const child = spawn(
         "npx",
         ["vercel", "deploy", "--prod", "--yes"],
         {
-          cwd: webDir,
+          cwd: ROOT,
           stdio: "inherit",
           shell: true,
           env: { ...process.env, VERCEL_TOKEN: vercelToken },
@@ -159,13 +158,18 @@ async function runAuthOnly() {
   }
 
   let vercelProjectUrl = null;
-  const vercelProjectPath = path.join(ROOT, "apps/web", ".vercel", "project.json");
-  try {
-    const v = JSON.parse(await fs.readFile(vercelProjectPath, "utf8"));
-    const pname = v.projectName || v.name;
-    if (pname) vercelProjectUrl = `https://${pname}.vercel.app`;
-  } catch {
-    // not linked
+  for (const dir of [ROOT, path.join(ROOT, "apps/web")]) {
+    const vercelProjectPath = path.join(dir, ".vercel", "project.json");
+    try {
+      const v = JSON.parse(await fs.readFile(vercelProjectPath, "utf8"));
+      const pname = v.projectName || v.name;
+      if (pname) {
+        vercelProjectUrl = `https://${pname}.vercel.app`;
+        break;
+      }
+    } catch {
+      // try next location
+    }
   }
   if (!vercelProjectUrl) {
     const custom = await question("Vercel project URL (e.g. https://my-app.vercel.app) or Enter to use localhost only: ").then((s) => s.trim());
@@ -725,14 +729,13 @@ async function main() {
   }
 
   console.log("\nDeploying to Vercel...");
-  const webDir = path.join(ROOT, "apps/web");
   try {
     await new Promise((resolve, reject) => {
       const child = spawn(
         "npx",
         ["vercel", "link", "--project", slug, "--yes"],
         {
-          cwd: webDir,
+          cwd: ROOT,
           stdio: "inherit",
           shell: true,
           env: { ...process.env, VERCEL_TOKEN: vercelToken },
@@ -747,7 +750,7 @@ async function main() {
         "npx",
         ["vercel", "deploy", "--prod", "--yes"],
         {
-          cwd: webDir,
+          cwd: ROOT,
           stdio: "inherit",
           shell: true,
           env: { ...process.env, VERCEL_TOKEN: vercelToken },

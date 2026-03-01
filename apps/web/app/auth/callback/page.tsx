@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../lib/auth";
 
 const AUTH_TOKEN_KEY = "auth_token";
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { loginWithGoogle } = useAuth();
@@ -53,5 +53,13 @@ export default function AuthCallbackPage() {
     <div style={{ padding: "2rem", textAlign: "center" }}>
       Completing sign-in…
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: "2rem", textAlign: "center" }}>Completing sign-in…</div>}>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

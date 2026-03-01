@@ -1,4 +1,4 @@
-# Project Template
+# New App
 
 A production-ready project starter template with Next.js 14, Expo (React Native), Convex (auth + database), and Tailwind CSS. Web and mobile share the same Convex backend and auth logic.
 
@@ -7,7 +7,7 @@ A production-ready project starter template with Next.js 14, Expo (React Native)
 - **Next.js 14** - App Router, TypeScript, Server Components
 - **Expo 54** - React Native app with Expo Router (iOS, Android, web); React 19, RN 0.81
 - **Convex** - Real-time database + auth (signup, login, sessions, Google/Apple OAuth)
-- **Shared auth** - `@project-template/auth` with platform adapters (localStorage / SecureStore) and optional Google/Apple sign-in
+- **Shared auth** - `@new-app/auth` with platform adapters (localStorage / SecureStore) and optional Google/Apple sign-in
 - **Tailwind CSS** - Utility-first styling (web)
 - **Vercel** - Production-ready deployment (web)
 
@@ -57,8 +57,8 @@ If you did not provide a key file when running `npm run auth`, or need to re-cre
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/project-template.git
-cd project-template
+git clone https://github.com/your-org/new-app.git
+cd new-app
 
 # Optional: run npm run init (see above) to create a new Convex + Vercel project and rename the app
 
@@ -102,7 +102,7 @@ Use the same Convex deployment URL for both apps so they share the same database
 ## Project Structure
 
 ```
-project-template/
+new-app/
 ├── apps/
 │   ├── web/                 # Next.js app
 │   │   ├── app/             # App Router (login, signup, dashboard)
@@ -128,7 +128,7 @@ project-template/
 - **Web**: `/signup`, `/login`, `/dashboard` (protected). Email/password plus **Sign in with Google** and **Sign in with Apple**. Token in `localStorage`.
 - **Mobile**: Same flows; token in `expo-secure-store`. Google (via in-app browser) and Apple (native `expo-apple-authentication` on iOS).
 
-Auth is implemented in `convex/auth.ts` (email/password plus `loginWithGoogle` and `loginWithApple` mutations) and shared UI in `@project-template/auth` with platform-specific token storage. OAuth client IDs and secrets are set by `npm run auth`; configure redirect URIs in Google and Apple consoles to match your app (see Apple manual steps above).
+Auth is implemented in `convex/auth.ts` (email/password plus `loginWithGoogle` and `loginWithApple` mutations) and shared UI in `@new-app/auth` with platform-specific token storage. OAuth client IDs and secrets are set by `npm run auth`; configure redirect URIs in Google and Apple consoles to match your app (see Apple manual steps above).
 
 ## Scripts (root)
 
@@ -148,9 +148,11 @@ Auth is implemented in `convex/auth.ts` (email/password plus `loginWithGoogle` a
 
 ### Web (Vercel)
 
-1. Import the repo on Vercel (use `apps/web` as root if required).
+1. Import the repo on Vercel with **Root Directory** left empty (repo root). The root `vercel.json` runs the web app build from `apps/web`.
 2. Set `NEXT_PUBLIC_CONVEX_URL`.
 3. Deploy.
+
+**If Vercel build fails with `npm install` exited with 1** (e.g. after linking from `apps/web`): use the repo root so workspace deps `@new-app/auth` and `@new-app/db` resolve. Either: **(A)** In Vercel → Project Settings → General → **Root Directory** set to `.` (repo root), then redeploy; or **(B)** move `apps/web/.vercel` to the repo root, set Root Directory to `.`, then run `npm run deploy`.
 
 ### Convex
 

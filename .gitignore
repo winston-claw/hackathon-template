@@ -39,3 +39,5 @@ convex/_generated/
 
 # Logs
 *.log
+.vercel
+.env*.local
