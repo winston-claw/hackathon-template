@@ -12,12 +12,14 @@ import { useMutation } from "convex/react";
 import type { FunctionReference } from "convex/server";
 import type { TokenStore, AuthProviderOptions, User } from "./types";
 
-/** API shape expected by auth: auth.login, auth.signup, auth.logout (Convex mutation refs) */
+/** API shape expected by auth: Convex mutation refs for login, signup, logout, OAuth */
 export interface AuthApi {
   auth: {
     login: FunctionReference<"mutation">;
     signup: FunctionReference<"mutation">;
     logout: FunctionReference<"mutation">;
+    loginWithGoogle: FunctionReference<"mutation">;
+    loginWithApple: FunctionReference<"mutation">;
   };
 }
 
@@ -27,6 +29,8 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  loginWithGoogle?: (idToken: string) => Promise<void>;
+  loginWithApple?: (args: { identityToken: string; email?: string; name?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -71,6 +75,8 @@ export function createAuthProvider(
     const loginMutation = useMutation(api.auth.login);
     const signupMutation = useMutation(api.auth.signup);
     const logoutMutation = useMutation(api.auth.logout);
+    const loginWithGoogleMutation = useMutation(api.auth.loginWithGoogle);
+    const loginWithAppleMutation = useMutation(api.auth.loginWithApple);
 
     useEffect(() => {
       let cancelled = false;
@@ -114,12 +120,34 @@ export function createAuthProvider(
       onLogout?.();
     }, [logoutMutation, tokenStore, onLogout]);
 
+    const loginWithGoogle = useCallback(
+      async (idToken: string) => {
+        const result = await loginWithGoogleMutation({ idToken });
+        await normalizeVoid(() => tokenStore.setToken(result.token));
+        setUser({ userId: result.userId, name: result.name, email: "" });
+        onLogin?.();
+      },
+      [loginWithGoogleMutation, tokenStore, onLogin]
+    );
+
+    const loginWithApple = useCallback(
+      async (args: { identityToken: string; email?: string; name?: string }) => {
+        const result = await loginWithAppleMutation(args);
+        await normalizeVoid(() => tokenStore.setToken(result.token));
+        setUser({ userId: result.userId, name: result.name, email: "" });
+        onLogin?.();
+      },
+      [loginWithAppleMutation, tokenStore, onLogin]
+    );
+
     const value: AuthContextValue = {
       user,
       loading,
       login,
       signup,
       logout,
+      loginWithGoogle,
+      loginWithApple,
     };
 
     return (

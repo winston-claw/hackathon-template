@@ -118,6 +118,43 @@ export default function LoginPage() {
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
+
+          <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <Link
+              href="/auth/google"
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '0.75rem',
+                background: 'white',
+                color: '#374151',
+                border: '1px solid #e2e8f0',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                textAlign: 'center',
+                textDecoration: 'none',
+              }}
+            >
+              Sign in with Google
+            </Link>
+            <Link
+              href="/auth/apple"
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '0.75rem',
+                background: '#000',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                textAlign: 'center',
+                textDecoration: 'none',
+              }}
+            >
+              Sign in with Apple
+            </Link>
+          </div>
         </form>
         
         <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: '#64748b' }}>

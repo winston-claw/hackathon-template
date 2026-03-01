@@ -6,16 +6,24 @@ A production-ready project starter template with Next.js 14, Expo (React Native)
 
 - **Next.js 14** - App Router, TypeScript, Server Components
 - **Expo 54** - React Native app with Expo Router (iOS, Android, web); React 19, RN 0.81
-- **Convex** - Real-time database + auth (signup, login, sessions)
-- **Shared auth** - `@project-template/auth` with platform adapters (localStorage / SecureStore)
+- **Convex** - Real-time database + auth (signup, login, sessions, Google/Apple OAuth)
+- **Shared auth** - `@project-template/auth` with platform adapters (localStorage / SecureStore) and optional Google/Apple sign-in
 - **Tailwind CSS** - Utility-first styling (web)
 - **Vercel** - Production-ready deployment (web)
 
 ## Initializing a new project from this template
 
-To create a new project with its own Convex deployment and Vercel project in one go:
+To create a new project with its own Convex deployment, Vercel project, and optional Google/Apple OAuth setup:
 
-1. **Set tokens** (Team Access Token from [Convex dashboard](https://dashboard.convex.dev), and [Vercel token](https://vercel.com/account/tokens)):
+### Prerequisites
+
+- **Convex**: Team Access Token from [Convex dashboard](https://dashboard.convex.dev).
+- **Vercel**: [Vercel token](https://vercel.com/account/tokens).
+- **Google OAuth (optional)**: [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed and authenticated (`gcloud auth login`). Used to create a GCP project and prompt you to create OAuth client credentials.
+
+### Run init
+
+1. **Set tokens:**
    ```bash
    export CONVEX_TOKEN="your-convex-team-token"
    export VERCEL_TOKEN="your-vercel-token"
@@ -25,10 +33,29 @@ To create a new project with its own Convex deployment and Vercel project in one
    npm run init
    ```
 3. When prompted, enter the **project display name** (e.g. `My Awesome App`) and optionally the **bundle ID prefix** (e.g. `com.mycompany`; default is `com.<slug>`).
+4. If you keep **auth** enabled (default), you will be guided through:
+   - **Google**: A GCP project is created; you create OAuth clients in the Cloud Console (URL printed) and paste the Web Client ID and secret (and optionally Android/iOS client IDs). These are saved to `.init/auth/google.generated.json` and written into env files.
+   - **Apple**: You are prompted for Apple Team ID, Key ID, Service ID, and path to your `.p8` private key. A manual checklist is printed for portal-only steps (App ID, Services ID, Key creation). Values are saved to `.init/auth/apple.generated.json` and (if key path is given) `.init/auth/apple_private_key.p8`. Add `.init/` to `.gitignore` (already done) so secrets are not committed.
 
-The script will create a new Convex project (with a dev deployment), create a new Vercel project, replace the template name and package scope everywhere, set Expo app name/slug/scheme and iOS/Android bundle IDs, write `apps/web/.env.local` and `apps/mobile/.env` with the Convex URL, run `npm install`, deploy the Convex backend, and deploy the web app to Vercel (production).
+### Auth options
+
+- `npm run init` — full init including Google and Apple OAuth provisioning (default).
+- `npm run init -- --auth=none` — skip OAuth setup.
+- `npm run init -- --auth=google` — only run Google OAuth setup.
+- `npm run init -- --auth=apple` — only run Apple OAuth setup.
+
+The script creates the Convex project (with a dev deployment), Vercel project, renames the template everywhere, sets Expo app name/slug/scheme and iOS/Android bundle IDs, writes env files (Convex URL and OAuth client IDs), runs `npm install`, deploys Convex (and sets OAuth secrets in Convex env), and deploys the web app to Vercel.
 
 To deploy again after init (without re-creating projects or re-prompting), run **`npm run deploy`** (or `npm run init -- --deploy`). You need `VERCEL_TOKEN` set; Convex uses your existing link from `convex dev` or `CONVEX_DEPLOY_KEY`.
+
+### Apple Sign In – manual steps
+
+If you did not provide a key file during init, or need to re-create credentials:
+
+1. [developer.apple.com](https://developer.apple.com) → Certificates, Identifiers & Profiles → **Identifiers**: create an **App ID** with "Sign in with Apple" (Bundle ID = your app’s bundle ID, e.g. `com.mycompany.mobile`).
+2. Create a **Services ID** for web (e.g. `com.mycompany.service`), enable "Sign in with Apple", set domains and redirect URLs to your web app (e.g. `https://yourapp.vercel.app/api/auth/callback/apple`).
+3. Create a **Key** with "Sign in with Apple" enabled; download the `.p8` and note the **Key ID**. Link the key to your primary App ID or Services ID.
+4. Set Convex env (or re-run init with key path): `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (contents of the `.p8`, newlines as `\n`).
 
 ## Quick Start
 
@@ -102,10 +129,10 @@ project-template/
 
 ## Authentication
 
-- **Web**: `/signup`, `/login`, `/dashboard` (protected). Token in `localStorage`.
-- **Mobile**: Same flows; token in `expo-secure-store`.
+- **Web**: `/signup`, `/login`, `/dashboard` (protected). Email/password plus **Sign in with Google** and **Sign in with Apple**. Token in `localStorage`.
+- **Mobile**: Same flows; token in `expo-secure-store`. Google (via in-app browser) and Apple (native `expo-apple-authentication` on iOS).
 
-Auth is implemented in `convex/auth.ts` and shared UI logic in `@project-template/auth` with platform-specific token storage.
+Auth is implemented in `convex/auth.ts` (email/password plus `loginWithGoogle` and `loginWithApple` mutations) and shared UI in `@project-template/auth` with platform-specific token storage. OAuth client IDs and secrets are set by `npm run init` when you choose auth setup; configure redirect URIs in Google and Apple consoles to match your app (see Apple manual steps above).
 
 ## Scripts (root)
 

@@ -10,6 +10,10 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Sign in with Google (web/mobile). Pass the id_token from Google OAuth. */
+  loginWithGoogle?: (idToken: string) => Promise<void>;
+  /** Sign in with Apple. Pass identityToken from Apple response; email/name optional. */
+  loginWithApple?: (args: { identityToken: string; email?: string; name?: string }) => Promise<void>;
 }
 
 /**

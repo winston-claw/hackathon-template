@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
-import { Link } from "expo-router";
+import { View, Text, TextInput, Pressable, StyleSheet, Platform } from "react-native";
+import { Link, useRouter } from "expo-router";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useAuth } from "../lib/auth";
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const router = useRouter();
+  const { login, loginWithGoogle, loginWithApple } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,6 +23,62 @@ export default function LoginScreen() {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+    if (!clientId) {
+      setError("Google sign-in not configured (EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID)");
+      return;
+    }
+    const redirectUri = Linking.createURL("/auth/callback");
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "id_token",
+      scope: "openid email profile",
+      nonce: "mobile-nonce",
+    });
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+    if (result.type === "success" && result.url) {
+      const fragment = result.url.split("#")[1] || "";
+      const idToken = new URLSearchParams(fragment).get("id_token");
+      if (idToken && loginWithGoogle) {
+        setError("");
+        try {
+          await loginWithGoogle(idToken);
+          router.replace("/dashboard");
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Google sign-in failed");
+        }
+      }
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    if (!loginWithApple) return;
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      const { identityToken, email: appleEmail, fullName } = credential;
+      if (!identityToken) {
+        setError("Apple sign-in did not return a token");
+        return;
+      }
+      const name = fullName?.givenName && fullName?.familyName
+        ? `${fullName.givenName} ${fullName.familyName}`.trim()
+        : undefined;
+      await loginWithApple({ identityToken, email: appleEmail ?? undefined, name });
+      router.replace("/dashboard");
+    } catch (e: unknown) {
+      if ((e as { code?: string }).code === "ERR_REQUEST_CANCELED") return;
+      setError(e instanceof Error ? e.message : "Apple sign-in failed");
     }
   };
 
@@ -52,6 +112,20 @@ export default function LoginScreen() {
       >
         <Text style={styles.buttonText}>{loading ? "Signing in..." : "Sign In"}</Text>
       </Pressable>
+
+      <Pressable style={styles.oauthButton} onPress={handleGoogleSignIn}>
+        <Text style={styles.oauthButtonText}>Sign in with Google</Text>
+      </Pressable>
+      {Platform.OS === "ios" && (
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+          cornerRadius={8}
+          style={styles.appleButton}
+          onPress={handleAppleSignIn}
+        />
+      )}
+
       <Text style={styles.footer}>
         Don't have an account?{" "}
         <Link href="/signup" style={styles.link}>
@@ -116,5 +190,24 @@ const styles = StyleSheet.create({
   },
   link: {
     color: "#2563eb",
+  },
+  oauthButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  oauthButtonText: {
+    color: "#374151",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  appleButton: {
+    marginTop: 12,
+    height: 44,
+    width: "100%",
   },
 });

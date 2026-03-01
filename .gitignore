@@ -34,5 +34,8 @@ Thumbs.db
 # Convex
 convex/_generated/
 
+# Init script generated auth secrets
+.init/
+
 # Logs
 *.log
