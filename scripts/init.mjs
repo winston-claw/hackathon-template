@@ -5,29 +5,25 @@
  * Requires CONVEX_TOKEN and VERCEL_TOKEN in the environment.
  *
  * Usage:
- *   node scripts/init.mjs                    full init (create projects, rename, deploy, auth)
- *   node scripts/init.mjs --auth=none         skip Google/Apple OAuth setup
- *   node scripts/init.mjs --auth=google       only run Google OAuth provisioning
- *   node scripts/init.mjs --auth=apple        only run Apple OAuth provisioning
- *   node scripts/init.mjs --auth=all          run both Google and Apple (default)
- *   node scripts/init.mjs --deploy            deploy only (Convex + Vercel)
+ *   node scripts/init.mjs        create projects, rename, deploy (email/password only)
+ *   node scripts/init.mjs --auth  add Google + Apple OAuth (run after init)
+ *   node scripts/init.mjs --deploy   deploy only (Convex + Vercel)
  *
- * Or: npm run init   /   npm run deploy
+ * Or: npm run init   /   npm run auth   /   npm run deploy
  */
 
 import { createInterface } from "readline";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const INIT_AUTH_DIR = path.join(ROOT, ".init", "auth");
 
 const DEPLOY_ONLY = process.argv.includes("--deploy");
-const AUTH_ARG = process.argv.find((a) => a.startsWith("--auth="));
-const AUTH_MODE = AUTH_ARG ? AUTH_ARG.split("=")[1] : "all"; // none | google | apple | all
+const AUTH_ONLY = process.argv.includes("--auth");
 
 const rl = createInterface({ input: process.stdin, output: process.stdout });
 const question = (q) => new Promise((resolve) => rl.question(q, resolve));
@@ -49,10 +45,11 @@ function compact(name) {
 
 function run(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
+    const useShell = opts.shell !== false;
     const child = spawn(cmd, args, {
       cwd: opts.cwd || ROOT,
       stdio: opts.stdio ?? "pipe",
-      shell: true,
+      shell: useShell,
       env: opts.env ? { ...process.env, ...opts.env } : process.env,
     });
     let out = "";
@@ -135,33 +132,259 @@ async function runDeployOnly() {
   console.log("\nDone.");
 }
 
+async function runAuthOnly() {
+  console.log("Add OAuth (Google + Apple) – run after init\n");
+
+  const pkgPath = path.join(ROOT, "package.json");
+  let slug = "my-app";
+  let displayName = "My App";
+  try {
+    const pkg = JSON.parse(await fs.readFile(pkgPath, "utf8"));
+    if (pkg.name) {
+      slug = slugify(pkg.name) || slug;
+      displayName = (pkg.name || "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || displayName;
+    }
+  } catch {
+    // use defaults
+  }
+
+  let bundlePrefix = "com." + slug.replace(/-/g, "");
+  const appJsonPath = path.join(ROOT, "apps/mobile/app.json");
+  try {
+    const appJson = JSON.parse(await fs.readFile(appJsonPath, "utf8"));
+    const bid = appJson?.expo?.ios?.bundleIdentifier || "";
+    if (bid.endsWith(".mobile")) bundlePrefix = bid.slice(0, -7);
+  } catch {
+    // use default
+  }
+
+  let vercelProjectUrl = null;
+  const vercelProjectPath = path.join(ROOT, "apps/web", ".vercel", "project.json");
+  try {
+    const v = JSON.parse(await fs.readFile(vercelProjectPath, "utf8"));
+    const pname = v.projectName || v.name;
+    if (pname) vercelProjectUrl = `https://${pname}.vercel.app`;
+  } catch {
+    // not linked
+  }
+  if (!vercelProjectUrl) {
+    const custom = await question("Vercel project URL (e.g. https://my-app.vercel.app) or Enter to use localhost only: ").then((s) => s.trim());
+    if (custom) vercelProjectUrl = custom;
+  }
+
+  await preflightChecks("all");
+  console.log("Using: slug=" + slug + ", bundlePrefix=" + bundlePrefix + ", displayName=" + displayName);
+
+  const googleAuth = await runGoogleProvisioning(slug, displayName, vercelProjectUrl);
+  const appleAuth = await runAppleProvisioning(slug, bundlePrefix);
+
+  const webEnvPath = path.join(ROOT, "apps/web/.env.local");
+  const mobileEnvPath = path.join(ROOT, "apps/mobile/.env");
+  const webLines = [];
+  const mobileLines = [];
+  if (googleAuth) {
+    webLines.push(`NEXT_PUBLIC_GOOGLE_CLIENT_ID=${googleAuth.webClientId}`);
+    mobileLines.push(`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=${googleAuth.webClientId}`);
+    if (googleAuth.androidClientId) mobileLines.push(`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=${googleAuth.androidClientId}`);
+    if (googleAuth.iosClientId) mobileLines.push(`EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=${googleAuth.iosClientId}`);
+  }
+  if (appleAuth) {
+    webLines.push(`NEXT_PUBLIC_APPLE_SERVICE_ID=${appleAuth.serviceId}`);
+    mobileLines.push(`EXPO_PUBLIC_APPLE_SERVICE_ID=${appleAuth.serviceId}`);
+  }
+
+  for (const line of webLines) {
+    const existing = await fs.readFile(webEnvPath, "utf8").catch(() => "");
+    if (!existing.includes(line.split("=")[0])) {
+      await fs.appendFile(webEnvPath, (existing.endsWith("\n") ? "" : "\n") + line + "\n");
+    }
+  }
+  for (const line of mobileLines) {
+    const existing = await fs.readFile(mobileEnvPath, "utf8").catch(() => "");
+    if (!existing.includes(line.split("=")[0])) {
+      await fs.appendFile(mobileEnvPath, (existing.endsWith("\n") ? "" : "\n") + line + "\n");
+    }
+  }
+  console.log("Appended OAuth vars to apps/web/.env.local and apps/mobile/.env");
+
+  const vercelToken = process.env.VERCEL_TOKEN;
+  if (vercelToken && (googleAuth || appleAuth)) {
+    const projectName = vercelProjectUrl ? new URL(vercelProjectUrl).hostname.split(".")[0] : slug;
+    if (googleAuth) {
+      try {
+        await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(projectName)}/env`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${vercelToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ key: "NEXT_PUBLIC_GOOGLE_CLIENT_ID", value: googleAuth.webClientId, type: "plain", target: ["production", "preview", "development"] }),
+        });
+      } catch (e) {
+        console.warn("Vercel Google env failed:", e.message);
+      }
+    }
+    if (appleAuth) {
+      try {
+        await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(projectName)}/env`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${vercelToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ key: "NEXT_PUBLIC_APPLE_SERVICE_ID", value: appleAuth.serviceId, type: "plain", target: ["production", "preview", "development"] }),
+        });
+      } catch (e) {
+        console.warn("Vercel Apple env failed:", e.message);
+      }
+    }
+    console.log("Set OAuth env on Vercel project.");
+  }
+
+  try {
+    const appJson = JSON.parse(await fs.readFile(appJsonPath, "utf8"));
+    const expo = appJson.expo || {};
+    if (!expo.plugins) expo.plugins = [];
+    if (!expo.plugins.includes("expo-apple-authentication")) {
+      expo.plugins.push("expo-apple-authentication");
+      appJson.expo = expo;
+      await fs.writeFile(appJsonPath, JSON.stringify(appJson, null, 2));
+      console.log("Added expo-apple-authentication to app.json");
+    }
+  } catch (e) {
+    console.warn("app.json update:", e.message);
+  }
+
+  const convexEnv = process.env;
+  if (googleAuth?.webClientSecret) {
+    try {
+      await new Promise((resolve, reject) => {
+        const child = spawn("npx", ["convex", "env", "set", "GOOGLE_CLIENT_SECRET", googleAuth.webClientSecret], {
+          cwd: ROOT,
+          stdio: "pipe",
+          shell: false,
+          env: convexEnv,
+        });
+        child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error("convex env set failed"))));
+      });
+      console.log("Set GOOGLE_CLIENT_SECRET in Convex.");
+    } catch (e) {
+      console.warn("Convex GOOGLE_CLIENT_SECRET:", e.message, "- set it in Convex dashboard if needed.");
+    }
+  }
+  if (appleAuth?.privateKeyP8 && appleAuth.teamId && appleAuth.keyId) {
+    const applePrivateKeyEscaped = appleAuth.privateKeyP8.replace(/\n/g, "\\n");
+    for (const [key, val] of [
+      ["APPLE_TEAM_ID", appleAuth.teamId],
+      ["APPLE_KEY_ID", appleAuth.keyId],
+      ["APPLE_PRIVATE_KEY", applePrivateKeyEscaped],
+    ]) {
+      try {
+        await new Promise((resolve, reject) => {
+          const child = spawn("npx", ["convex", "env", "set", key, val], {
+            cwd: ROOT,
+            stdio: "pipe",
+            shell: false,
+            env: convexEnv,
+          });
+          child.on("exit", (code) => (code === 0 ? resolve() : reject()));
+        });
+      } catch {
+        // ignore
+      }
+    }
+    console.log("Set APPLE_* in Convex.");
+  } else if (appleAuth) {
+    console.log("Apple: set APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY in Convex dashboard when you have the .p8 key.");
+  }
+
+  console.log("\nOAuth setup done. Redeploy Convex and Vercel if needed.");
+}
+
+function randomId(len = 6) {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let s = "";
+  for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
 async function runGoogleProvisioning(slug, displayName, vercelProjectUrl) {
-  const gcpProjectId = slug.replace(/-/g, "").slice(0, 30) || slug; // GCP project ID: letters, numbers, hyphens; 6-30 chars
+  const baseId = slug.replace(/-/g, "").slice(0, 30) || slug; // GCP project ID: letters, numbers, hyphens; 6-30 chars
   console.log("\n--- Google OAuth setup ---");
-  console.log("Using GCP project ID:", gcpProjectId);
 
+  const gcpProjectName = displayName.trim().slice(0, 100);
+  let gcpProjectId = null;
   try {
-    await run("gcloud", ["projects", "create", gcpProjectId, "--name=" + displayName.trim().slice(0, 100)]);
+    await run("gcloud", ["projects", "create", baseId, `--name=${gcpProjectName}`], { shell: false });
+    gcpProjectId = baseId;
+    console.log("Using GCP project ID:", gcpProjectId);
   } catch (e) {
-    // Project may already exist
-    if (!e.message.includes("already exists")) console.warn("gcloud projects create:", e.message);
+    const inUse = e.message.includes("already in use") || e.message.includes("already exists");
+    const quotaExceeded = e.message.includes("quota") || e.message.includes("QuotaFailure");
+    if (inUse) {
+      const fallbackId = baseId.slice(0, 22) + "-" + randomId(6);
+      console.log("Project ID", baseId, "taken; trying", fallbackId);
+      try {
+        await run("gcloud", ["projects", "create", fallbackId, `--name=${gcpProjectName}`], { shell: false });
+        gcpProjectId = fallbackId;
+        console.log("Using GCP project ID:", gcpProjectId);
+      } catch (e2) {
+        const quota2 = e2.message.includes("quota") || e2.message.includes("QuotaFailure");
+        console.warn("gcloud projects create:", e2.message);
+        if (quota2) {
+          console.log("\nYou've hit the GCP project quota. Use an existing project or request a quota increase.");
+        }
+      }
+    } else {
+      console.warn("gcloud projects create:", e.message);
+      if (quotaExceeded) {
+        console.log("\nYou've hit the GCP project quota. Use an existing project or request a quota increase.");
+      }
+    }
   }
 
-  try {
-    await run("gcloud", ["config", "set", "project", gcpProjectId]);
-  } catch (e) {
-    console.warn("gcloud config set project:", e.message);
+  if (!gcpProjectId) {
+    const existing = await question("Enter an existing GCP project ID to use for OAuth (or press Enter to skip Google setup): ").then((s) => s.trim());
+    if (!existing) {
+      console.log("Skipping Google OAuth setup.");
+      return null;
+    }
+    gcpProjectId = existing;
+    try {
+      await run("gcloud", ["config", "set", "project", gcpProjectId], { shell: false });
+    } catch (e) {
+      console.warn("gcloud config set project:", e.message);
+    }
+  } else {
+    try {
+      await run("gcloud", ["config", "set", "project", gcpProjectId], { shell: false });
+    } catch (e) {
+      console.warn("gcloud config set project:", e.message);
+    }
   }
 
+  const consentUrl = `https://console.cloud.google.com/apis/credentials/consent?project=${gcpProjectId}`;
   const credentialsUrl = `https://console.cloud.google.com/apis/credentials?project=${gcpProjectId}`;
-  console.log("\nCreate OAuth 2.0 credentials in the Cloud Console:");
-  console.log(credentialsUrl);
-  console.log("1. Configure OAuth consent screen (External, add your email as test user if needed).");
-  console.log("2. Create credential > OAuth client ID > Web application.");
-  console.log("   Authorized redirect URIs: " + (vercelProjectUrl ? `${vercelProjectUrl}/api/auth/callback/google` : "https://YOUR_VERCEL_URL/api/auth/callback/google"));
-  console.log("3. Create credential > OAuth client ID > Android (package name from app.json) and/or iOS (bundle ID) if needed for mobile.\n");
+  const redirectUriProd = vercelProjectUrl ? `${vercelProjectUrl}/auth/callback` : null;
+  const redirectUriLocal = "http://localhost:3000/auth/callback";
 
-  const webClientId = await question("Paste your Web application Client ID: ");
+  console.log("\nOpening Cloud Console in your browser...");
+  try {
+    const open = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+    execSync(`${open} "${consentUrl}"`, { stdio: "ignore" });
+  } catch {
+    // ignore
+  }
+
+  console.log("\n1. In the tab that opened: configure OAuth consent screen (External), set app name and support email, add your email as test user if needed. Save.");
+  console.log("2. Then go to Credentials, Create credential > OAuth client ID > Web application.");
+  console.log("   Add these Authorized redirect URIs:");
+  if (redirectUriProd) console.log("   - " + redirectUriProd);
+  console.log("   - " + redirectUriLocal);
+  console.log("3. (Optional) Create credential > OAuth client ID > Android and/or iOS for mobile.\n");
+  console.log("Credentials page: " + credentialsUrl);
+  try {
+    const open = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+    execSync(`${open} "${credentialsUrl}"`, { stdio: "ignore" });
+  } catch {
+    // ignore
+  }
+
+  const webClientId = await question("\nPaste your Web application Client ID: ");
   const webClientSecret = await question("Paste your Web application Client secret: ");
   const androidClientId = await question("Android OAuth Client ID (optional, press Enter to skip): ").then((s) => s.trim() || null);
   const iosClientId = await question("iOS OAuth Client ID (optional, press Enter to skip): ").then((s) => s.trim() || null);
@@ -241,8 +464,13 @@ async function main() {
     rl.close();
     return;
   }
+  if (AUTH_ONLY) {
+    await runAuthOnly();
+    rl.close();
+    return;
+  }
 
-  console.log("Project init – Convex + Vercel + template renames + OAuth\n");
+  console.log("Project init – Convex + Vercel + template renames (email/password only)\n");
 
   const convexToken = process.env.CONVEX_TOKEN;
   const vercelToken = process.env.VERCEL_TOKEN;
@@ -254,9 +482,6 @@ async function main() {
     console.error("Missing VERCEL_TOKEN. Set it and run again.");
     process.exit(1);
   }
-
-  const authMode = AUTH_MODE;
-  await preflightChecks(authMode);
 
   const displayName = await question("Project display name (e.g. My Awesome App): ");
   if (!displayName.trim()) {
@@ -275,7 +500,6 @@ async function main() {
   console.log("  slug:", slug);
   console.log("  scope:", `@${slug}`);
   console.log("  bundle prefix:", bundlePrefix);
-  console.log("  auth:", authMode);
   console.log("");
 
   // --- Convex: get team ID then create project ---
@@ -406,42 +630,18 @@ async function main() {
     expo.scheme = slug;
     if (expo.ios) expo.ios.bundleIdentifier = `${bundlePrefix}.mobile`;
     if (expo.android) expo.android.package = `${bundlePrefix}.mobile`;
-    if (!expo.plugins) expo.plugins = [];
-    if (!expo.plugins.includes("expo-apple-authentication")) {
-      expo.plugins.push("expo-apple-authentication");
-    }
     appJson.expo = expo;
     await fs.writeFile(appJsonPath, JSON.stringify(appJson, null, 2));
   } catch (e) {
     console.error("Failed to update app.json:", e.message);
   }
 
-  // --- OAuth provisioning (Google + Apple) ---
-  let googleAuth = null;
-  let appleAuth = null;
-  if (authMode === "google" || authMode === "all") {
-    googleAuth = await runGoogleProvisioning(slug, displayName, vercelProjectUrl);
-  }
-  if (authMode === "apple" || authMode === "all") {
-    appleAuth = await runAppleProvisioning(slug, bundlePrefix);
-  }
-
-  // --- Write env files (Convex URL + OAuth vars) ---
+  // --- Write env files (Convex URL only) ---
   const webEnvLines = [];
   const mobileEnvLines = [];
   if (convexUrl) {
     webEnvLines.push(`NEXT_PUBLIC_CONVEX_URL=${convexUrl}`);
     mobileEnvLines.push(`EXPO_PUBLIC_CONVEX_URL=${convexUrl}`);
-  }
-  if (googleAuth) {
-    webEnvLines.push(`NEXT_PUBLIC_GOOGLE_CLIENT_ID=${googleAuth.webClientId}`);
-    mobileEnvLines.push(`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=${googleAuth.webClientId}`);
-    if (googleAuth.androidClientId) mobileEnvLines.push(`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=${googleAuth.androidClientId}`);
-    if (googleAuth.iosClientId) mobileEnvLines.push(`EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=${googleAuth.iosClientId}`);
-  }
-  if (appleAuth) {
-    webEnvLines.push(`NEXT_PUBLIC_APPLE_SERVICE_ID=${appleAuth.serviceId}`);
-    mobileEnvLines.push(`EXPO_PUBLIC_APPLE_SERVICE_ID=${appleAuth.serviceId}`);
   }
 
   if (webEnvLines.length) {
@@ -453,7 +653,7 @@ async function main() {
     console.log("Wrote apps/mobile/.env");
   }
 
-  // --- Vercel env vars (public only) ---
+  // --- Vercel env vars (Convex URL only) ---
   if (convexUrl) {
     try {
       await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(slug)}/env`, {
@@ -471,44 +671,6 @@ async function main() {
       });
     } catch (e) {
       console.warn("Vercel env var failed (continuing):", e.message);
-    }
-  }
-  if (googleAuth) {
-    try {
-      await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(slug)}/env`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${vercelToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          key: "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
-          value: googleAuth.webClientId,
-          type: "plain",
-          target: ["production", "preview", "development"],
-        }),
-      });
-    } catch (e) {
-      console.warn("Vercel Google env failed:", e.message);
-    }
-  }
-  if (appleAuth) {
-    try {
-      await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(slug)}/env`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${vercelToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          key: "NEXT_PUBLIC_APPLE_SERVICE_ID",
-          value: appleAuth.serviceId,
-          type: "plain",
-          target: ["production", "preview", "development"],
-        }),
-      });
-    } catch (e) {
-      console.warn("Vercel Apple env failed:", e.message);
     }
   }
 
@@ -557,50 +719,6 @@ async function main() {
         );
       });
       console.log("Convex deploy done.");
-
-      // Set Convex env vars for OAuth secrets (backend only)
-      const convexEnv = { ...process.env, CONVEX_DEPLOY_KEY: deployKey };
-      if (googleAuth?.webClientSecret) {
-        await new Promise((resolve, reject) => {
-          const child = spawn("npx", ["convex", "env", "set", "GOOGLE_CLIENT_SECRET", googleAuth.webClientSecret], {
-            cwd: ROOT,
-            stdio: "pipe",
-            shell: true,
-            env: convexEnv,
-          });
-          child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error("convex env set failed"))));
-        }).catch((e) => console.warn("Convex GOOGLE_CLIENT_SECRET env set failed:", e.message));
-      }
-      if (appleAuth?.privateKeyP8 && appleAuth.teamId && appleAuth.keyId) {
-        const applePrivateKeyEscaped = appleAuth.privateKeyP8.replace(/\n/g, "\\n");
-        await new Promise((resolve, reject) => {
-          const child = spawn("npx", ["convex", "env", "set", "APPLE_TEAM_ID", appleAuth.teamId], {
-            cwd: ROOT,
-            stdio: "pipe",
-            shell: true,
-            env: convexEnv,
-          });
-          child.on("exit", (code) => (code === 0 ? resolve() : reject()));
-        }).catch(() => {});
-        await new Promise((resolve, reject) => {
-          const child = spawn("npx", ["convex", "env", "set", "APPLE_KEY_ID", appleAuth.keyId], {
-            cwd: ROOT,
-            stdio: "pipe",
-            shell: true,
-            env: convexEnv,
-          });
-          child.on("exit", (code) => (code === 0 ? resolve() : reject()));
-        }).catch(() => {});
-        await new Promise((resolve, reject) => {
-          const child = spawn("npx", ["convex", "env", "set", "APPLE_PRIVATE_KEY", applePrivateKeyEscaped], {
-            cwd: ROOT,
-            stdio: "pipe",
-            shell: true,
-            env: convexEnv,
-          });
-          child.on("exit", (code) => (code === 0 ? resolve() : reject()));
-        }).catch(() => {});
-      }
     } catch (e) {
       console.error("Convex deploy failed:", e.message);
     }
@@ -644,15 +762,9 @@ async function main() {
     console.error("Vercel deploy failed:", e.message);
   }
 
-  // --- Verification output ---
   console.log("\nDone. Next steps:");
   console.log("  1. Run: npm run dev  (web) or npm run dev:mobile (mobile)");
-  if (authMode !== "none" && (googleAuth || appleAuth)) {
-    console.log("  2. OAuth: Add callback routes (e.g. /api/auth/callback/google) and wire provider buttons on login/signup.");
-    if (appleAuth && !appleAuth.privateKeyP8) {
-      console.log("  3. Apple: Complete manual steps above and set APPLE_PRIVATE_KEY in Convex env.");
-    }
-  }
+  console.log("  2. To add Google/Apple OAuth later: npm run auth");
   rl.close();
 }
 
