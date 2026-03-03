@@ -42,15 +42,17 @@ function AuthCallbackContent() {
 
   if (error) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        <p style={{ color: "#dc2626" }}>{error}</p>
-        <a href="/login" style={{ color: "#2563eb" }}>Back to login</a>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f0', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#b91c1c', marginBottom: 12 }}>{error}</p>
+          <a href="/login" style={{ color: '#1a1a1a', fontWeight: 700, textDecoration: 'none' }}>Back to login</a>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: "2rem", textAlign: "center" }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f0', fontFamily: 'Inter, system-ui, sans-serif', color: '#1a1a1a' }}>
       Completing sign-in…
     </div>
   );
@@ -58,7 +60,7 @@ function AuthCallbackContent() {
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={<div style={{ padding: "2rem", textAlign: "center" }}>Completing sign-in…</div>}>
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f0', fontFamily: 'Inter, system-ui, sans-serif', color: '#1a1a1a' }}>Completing sign-in…</div>}>
       <AuthCallbackContent />
     </Suspense>
   );

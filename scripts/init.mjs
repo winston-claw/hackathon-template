@@ -105,7 +105,7 @@ async function runDeployOnly() {
     process.exit(1);
   }
 
-  console.log("\nDeploying to Vercel (from repo root for workspace install)...");
+  console.log("\nDeploying to Vercel...");
   try {
     await new Promise((resolve, reject) => {
       const child = spawn(
@@ -563,7 +563,7 @@ async function main() {
         Authorization: `Bearer ${vercelToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name: slug, framework: "nextjs" }),
+      body: JSON.stringify({ name: slug, framework: "nextjs", rootDirectory: "apps/web" }),
     });
     if (!vercelRes.ok) {
       const t = await vercelRes.text();
@@ -730,12 +730,13 @@ async function main() {
 
   console.log("\nDeploying to Vercel...");
   try {
+    const webDir = path.join(ROOT, "apps/web");
     await new Promise((resolve, reject) => {
       const child = spawn(
         "npx",
         ["vercel", "link", "--project", slug, "--yes"],
         {
-          cwd: ROOT,
+          cwd: webDir,
           stdio: "inherit",
           shell: true,
           env: { ...process.env, VERCEL_TOKEN: vercelToken },

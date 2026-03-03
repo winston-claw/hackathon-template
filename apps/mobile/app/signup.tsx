@@ -1,25 +1,64 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  Platform,
+  ScrollView,
+  KeyboardAvoidingView,
+} from "react-native";
 import { Link, useRouter } from "expo-router";
-import * as Linking from "expo-linking";
-import * as WebBrowser from "expo-web-browser";
-import * as AppleAuthentication from "expo-apple-authentication";
 import { useAuth } from "../lib/auth";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function SignupScreen() {
+  const { signup } = useAuth();
   const router = useRouter();
-  const { signup, loginWithGoogle, loginWithApple } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [oauthNotice, setOauthNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [touched, setTouched] = useState({
+    name: false,
+    email: false,
+    password: false,
+  });
+
+  const nameIsValid = name.trim().length >= 2;
+  const emailIsValid = EMAIL_REGEX.test(email.trim());
+  const passwordIsValid = password.length >= 6;
+  const canSubmit = nameIsValid && emailIsValid && passwordIsValid && !loading;
 
   const handleSubmit = async () => {
     setError("");
+    setOauthNotice("");
+    setTouched({
+      name: true,
+      email: true,
+      password: true,
+    });
+
+    if (!nameIsValid) {
+      setError("Enter your full name (at least 2 characters).");
+      return;
+    }
+    if (!emailIsValid) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (!passwordIsValid) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await signup(name, email, password);
+      await signup(name.trim(), email.trim(), password);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Signup failed");
     } finally {
@@ -27,196 +66,312 @@ export default function SignupScreen() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-    if (!clientId) {
-      setError("Google sign-in not configured (EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID)");
-      return;
-    }
-    const redirectUri = Linking.createURL("/auth/callback");
-    const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      response_type: "id_token",
-      scope: "openid email profile",
-      nonce: "mobile-nonce",
-    });
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
-    if (result.type === "success" && result.url) {
-      const fragment = result.url.split("#")[1] || "";
-      const idToken = new URLSearchParams(fragment).get("id_token");
-      if (idToken && loginWithGoogle) {
-        setError("");
-        try {
-          await loginWithGoogle(idToken);
-          router.replace("/dashboard");
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Google sign-up failed");
-        }
-      }
-    }
-  };
-
-  const handleAppleSignIn = async () => {
-    if (!loginWithApple) return;
-    try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-      const { identityToken, email: appleEmail, fullName } = credential;
-      if (!identityToken) {
-        setError("Apple sign-in did not return a token");
-        return;
-      }
-      const displayName = fullName?.givenName && fullName?.familyName
-        ? `${fullName.givenName} ${fullName.familyName}`.trim()
-        : undefined;
-      await loginWithApple({ identityToken, email: appleEmail ?? undefined, name: displayName });
-      router.replace("/dashboard");
-    } catch (e: unknown) {
-      if ((e as { code?: string }).code === "ERR_REQUEST_CANCELED") return;
-      setError(e instanceof Error ? e.message : "Apple sign-up failed");
-    }
+  const handleOauthPress = (provider: "Google" | "Apple") => {
+    setError("");
+    setOauthNotice(
+      `${provider} sign-up is coming soon. Continue with email for now.`
+    );
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
-      {error ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password (min 6 characters)"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <Pressable
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleSubmit}
-        disabled={loading}
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.select({ ios: "padding", android: undefined })}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.buttonText}>
-          {loading ? "Creating account..." : "Create Account"}
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backArrow}>←</Text>
+        </Pressable>
+
+        <Text style={styles.title}>Create{"\n"}account</Text>
+        <Text style={styles.subtitle}>
+          Sign up to get started with your journey.
         </Text>
-      </Pressable>
 
-      <Pressable style={styles.oauthButton} onPress={handleGoogleSignIn}>
-        <Text style={styles.oauthButtonText}>Sign up with Google</Text>
-      </Pressable>
-      {Platform.OS === "ios" && (
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
-          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={8}
-          style={styles.appleButton}
-          onPress={handleAppleSignIn}
+        {error ? (
+          <View style={styles.messageBoxError}>
+            <Text style={styles.messageTextError}>{error}</Text>
+          </View>
+        ) : null}
+
+        {oauthNotice ? (
+          <View style={styles.messageBoxInfo}>
+            <Text style={styles.messageTextInfo}>{oauthNotice}</Text>
+          </View>
+        ) : null}
+
+        <Text style={styles.label}>Full Name</Text>
+        <TextInput
+          style={[
+            styles.input,
+            touched.name && !nameIsValid && styles.inputError,
+          ]}
+          placeholder="Alex Johnson"
+          placeholderTextColor="#b5b5b0"
+          value={name}
+          onChangeText={setName}
+          onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
+          autoComplete="name"
+          textContentType="name"
         />
-      )}
+        {touched.name && !nameIsValid ? (
+          <Text style={styles.helperError}>
+            Name should be at least 2 characters.
+          </Text>
+        ) : null}
 
-      <Text style={styles.footer}>
-        Already have an account?{" "}
-        <Link href="/login" style={styles.link}>
-          Sign in
-        </Link>
-      </Text>
-    </View>
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          style={[
+            styles.input,
+            touched.email && !emailIsValid && styles.inputError,
+          ]}
+          placeholder="you@example.com"
+          placeholderTextColor="#b5b5b0"
+          value={email}
+          onChangeText={(value) => setEmail(value.trimStart())}
+          onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          autoComplete="email"
+          textContentType="emailAddress"
+        />
+        {touched.email && !emailIsValid ? (
+          <Text style={styles.helperError}>Use a valid email format.</Text>
+        ) : null}
+
+        <Text style={styles.label}>Password</Text>
+        <TextInput
+          style={[
+            styles.input,
+            touched.password && !passwordIsValid && styles.inputError,
+          ]}
+          placeholder="••••••••"
+          placeholderTextColor="#b5b5b0"
+          value={password}
+          onChangeText={setPassword}
+          onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+          secureTextEntry
+          autoComplete="password-new"
+          textContentType="newPassword"
+        />
+        <Text style={styles.helper}>Minimum 6 characters.</Text>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.primaryButton,
+            !canSubmit && styles.primaryButtonDisabled,
+            pressed && canSubmit && styles.buttonPressed,
+          ]}
+          onPress={handleSubmit}
+          disabled={!canSubmit}
+        >
+          <Text style={styles.primaryButtonText}>
+            {loading ? "Creating account..." : "Create Account"}
+          </Text>
+        </Pressable>
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or continue with</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.oauthButton,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => handleOauthPress("Google")}
+        >
+          <Text style={styles.oauthButtonText}>Sign up with Google</Text>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.oauthButton,
+            styles.oauthButtonDark,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => handleOauthPress("Apple")}
+        >
+          <Text style={styles.oauthButtonDarkText}>Sign up with Apple</Text>
+        </Pressable>
+
+        <Text style={styles.footer}>
+          Already have an account?{" "}
+          <Link href="/login" style={styles.link}>
+            Sign in
+          </Link>
+        </Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: 24,
-    backgroundColor: "#fff",
+    backgroundColor: "#f5f5f0",
+  },
+  content: {
+    flexGrow: 1,
+    paddingTop: 60,
+    paddingBottom: 40,
+    paddingHorizontal: 28,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#eae8e3",
     justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  backArrow: {
+    fontSize: 20,
+    color: "#1a1a1a",
+    marginTop: -2,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 24,
-    textAlign: "center",
+    fontSize: 36,
+    lineHeight: 42,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    letterSpacing: -0.5,
+    marginBottom: 10,
   },
-  errorBox: {
-    padding: 12,
-    backgroundColor: "#fee2e2",
-    borderRadius: 8,
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#888",
+    marginBottom: 28,
+  },
+  messageBoxError: {
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#fef2f2",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    marginBottom: 14,
+  },
+  messageTextError: {
+    fontSize: 14,
+    color: "#b91c1c",
+  },
+  messageBoxInfo: {
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#f0f0eb",
+    borderWidth: 1,
+    borderColor: "#ddd8d0",
     marginBottom: 16,
   },
-  errorText: {
-    color: "#dc2626",
+  messageTextInfo: {
     fontSize: 14,
+    color: "#555",
+  },
+  label: {
+    color: "#1a1a1a",
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+    marginTop: 14,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
+    borderColor: "#ddd8d0",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: "#ffffff",
+    color: "#1a1a1a",
     fontSize: 16,
-    marginBottom: 12,
   },
-  button: {
-    backgroundColor: "#2563eb",
-    padding: 14,
-    borderRadius: 8,
+  inputError: {
+    borderColor: "#e57373",
+  },
+  helper: {
+    color: "#999",
+    fontSize: 12,
+    marginTop: 6,
+  },
+  helperError: {
+    color: "#b91c1c",
+    fontSize: 12,
+    marginTop: 6,
+  },
+  primaryButton: {
+    backgroundColor: "#2d2d2d",
+    borderRadius: 30,
+    paddingVertical: 17,
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 24,
   },
-  buttonDisabled: {
-    opacity: 0.7,
+  primaryButtonDisabled: {
+    backgroundColor: "#b5b5b0",
   },
-  buttonText: {
+  primaryButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
-  footer: {
-    marginTop: 24,
-    textAlign: "center",
-    color: "#64748b",
-    fontSize: 14,
+  dividerRow: {
+    marginTop: 22,
+    marginBottom: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
-  link: {
-    color: "#2563eb",
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#ddd8d0",
+  },
+  dividerText: {
+    color: "#999",
+    fontSize: 12,
+    fontWeight: "500",
   },
   oauthButton: {
-    marginTop: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: "center",
+    borderRadius: 30,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#ddd8d0",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    paddingVertical: 15,
+    marginTop: 10,
+  },
+  oauthButtonDark: {
+    backgroundColor: "#1a1a1a",
+    borderColor: "#1a1a1a",
   },
   oauthButtonText: {
-    color: "#374151",
+    color: "#1a1a1a",
     fontSize: 16,
     fontWeight: "600",
   },
-  appleButton: {
-    marginTop: 12,
-    height: 44,
-    width: "100%",
+  oauthButtonDarkText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  buttonPressed: {
+    opacity: 0.85,
+  },
+  footer: {
+    marginTop: 28,
+    color: "#888",
+    fontSize: 14,
+    textAlign: "center",
+  },
+  link: {
+    color: "#1a1a1a",
+    fontWeight: "700",
   },
 });

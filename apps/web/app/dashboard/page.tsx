@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '../../lib/auth';
 
 export default function DashboardPage() {
@@ -21,49 +20,69 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center' 
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#f5f5f0',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        color: '#1a1a1a',
       }}>
         Loading...
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: '#f5f5f0',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      color: '#1a1a1a',
+    }}>
       {/* Header */}
-      <header style={{ 
-        background: 'white', 
-        borderBottom: '1px solid #e2e8f0',
+      <header style={{
+        background: '#fff',
+        borderBottom: '1px solid #ddd8d0',
         padding: '1rem 2rem',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
       }}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
+        <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>
+          <span style={{
+            display: 'inline-flex',
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: '#2d2d2d',
+            color: '#fff',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 12,
+            marginRight: 8,
+            verticalAlign: 'middle',
+          }}>Y</span>
           Dashboard
-        </h1>
+        </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
+          <span style={{ fontSize: '0.875rem', color: '#888' }}>
             {user.email}
           </span>
           <button
             onClick={handleLogout}
-            style={{ 
+            style={{
               padding: '0.5rem 1rem',
               background: 'transparent',
-              color: '#64748b',
-              border: '1px solid #e2e8f0',
-              borderRadius: '0.5rem',
+              color: '#1a1a1a',
+              border: '1px solid #ddd8d0',
+              borderRadius: 999,
               cursor: 'pointer',
-              fontSize: '0.875rem'
+              fontSize: '0.875rem',
+              fontWeight: 600,
             }}
           >
             Sign Out
@@ -71,24 +90,23 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Welcome */}
+      {/* Main */}
+      <main style={{ padding: '2rem', maxWidth: 1120, margin: '0 auto' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-            Welcome back{user.name ? `, ${user.name}` : ''}! 👋
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem', letterSpacing: -0.3 }}>
+            Welcome back{user.name ? `, ${user.name}` : ''}
           </h2>
-          <p style={{ color: '#64748b' }}>
+          <p style={{ color: '#888' }}>
             This is your authenticated dashboard. Only logged-in users can see this page.
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-          gap: '1.5rem',
-          marginBottom: '2rem'
+        {/* Stats */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '1rem',
+          marginBottom: '2rem',
         }}>
           {[
             { label: 'Total Users', value: '1,234', change: '+12%' },
@@ -96,20 +114,20 @@ export default function DashboardPage() {
             { label: 'Active Sessions', value: '567', change: '+23%' },
             { label: 'Conversion', value: '3.2%', change: '+5%' },
           ].map((stat, i) => (
-            <div key={i} style={{ 
-              background: 'white', 
-              padding: '1.5rem', 
-              borderRadius: '0.5rem',
-              border: '1px solid #e2e8f0'
+            <div key={i} style={{
+              background: '#fff',
+              padding: '1.25rem',
+              borderRadius: 16,
+              border: '1px solid #ddd8d0',
             }}>
-              <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+              <p style={{ fontSize: '0.875rem', color: '#888', marginBottom: '0.5rem' }}>
                 {stat.label}
               </p>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>
+                <span style={{ fontSize: '1.75rem', fontWeight: 700 }}>
                   {stat.value}
                 </span>
-                <span style={{ fontSize: '0.875rem', color: '#16a34a' }}>
+                <span style={{ fontSize: '0.875rem', color: '#2d8a6e', fontWeight: 600 }}>
                   {stat.change}
                 </span>
               </div>
@@ -118,43 +136,49 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div style={{ 
-          background: 'white', 
-          padding: '1.5rem', 
-          borderRadius: '0.5rem',
-          border: '1px solid #e2e8f0'
+        <div style={{
+          background: '#fff',
+          padding: '1.5rem',
+          borderRadius: 16,
+          border: '1px solid #ddd8d0',
         }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>
             Quick Actions
           </h3>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <button style={{ 
-              padding: '0.75rem 1rem',
-              background: '#2563eb',
-              color: 'white',
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' as const }}>
+            <button style={{
+              padding: '0.75rem 1.25rem',
+              background: '#2d2d2d',
+              color: '#fff',
               border: 'none',
-              borderRadius: '0.5rem',
-              cursor: 'pointer'
+              borderRadius: 999,
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem',
             }}>
               Create New Project
             </button>
-            <button style={{ 
-              padding: '0.75rem 1rem',
-              background: 'white',
-              color: '#2563eb',
-              border: '1px solid #2563eb',
-              borderRadius: '0.5rem',
-              cursor: 'pointer'
+            <button style={{
+              padding: '0.75rem 1.25rem',
+              background: '#fff',
+              color: '#1a1a1a',
+              border: '1px solid #ddd8d0',
+              borderRadius: 999,
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem',
             }}>
               View Analytics
             </button>
-            <button style={{ 
-              padding: '0.75rem 1rem',
-              background: 'white',
-              color: '#2563eb',
-              border: '1px solid #2563eb',
-              borderRadius: '0.5rem',
-              cursor: 'pointer'
+            <button style={{
+              padding: '0.75rem 1.25rem',
+              background: '#fff',
+              color: '#1a1a1a',
+              border: '1px solid #ddd8d0',
+              borderRadius: 999,
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem',
             }}>
               Invite Team Member
             </button>

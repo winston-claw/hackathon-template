@@ -27,7 +27,7 @@ export default function AuthApplePage() {
   }, []);
 
   return (
-    <div style={{ padding: "2rem", textAlign: "center" }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f0', fontFamily: 'Inter, system-ui, sans-serif', color: '#1a1a1a' }}>
       Redirecting to Apple…
     </div>
   );

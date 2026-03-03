@@ -10,11 +10,11 @@ function AuthLayout() {
       onLogin={() => router.replace("/dashboard")}
       onLogout={() => router.replace("/")}
     >
-      <Stack>
-        <Stack.Screen name="index" options={{ title: "Home" }} />
-        <Stack.Screen name="login" options={{ title: "Sign In" }} />
-        <Stack.Screen name="signup" options={{ title: "Create Account" }} />
-        <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="signup" />
+        <Stack.Screen name="dashboard" />
       </Stack>
     </AuthProvider>
   );
