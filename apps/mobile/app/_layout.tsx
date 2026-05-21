@@ -1,5 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { ConvexProvider } from "convex/react";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { convex } from "../lib/convex";
 import { AuthProvider } from "../lib/auth";
 
@@ -22,8 +23,10 @@ function AuthLayout() {
 
 export default function RootLayout() {
   return (
-    <ConvexProvider client={convex}>
-      <AuthLayout />
-    </ConvexProvider>
+    <SafeAreaProvider>
+      <ConvexProvider client={convex}>
+        <AuthLayout />
+      </ConvexProvider>
+    </SafeAreaProvider>
   );
 }

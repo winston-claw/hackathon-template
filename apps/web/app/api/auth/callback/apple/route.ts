@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "@project-template/db/api";
+import { api } from "@project-template/app/db/api";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -13,8 +13,9 @@ export async function POST(req: NextRequest) {
   }
 
   const formData = await req.formData();
-  const identityToken = formData.get("id_token")?.toString();
-  const userJson = formData.get("user")?.toString();
+  const webFormData = formData as unknown as globalThis.FormData;
+  const identityToken = webFormData.get("id_token")?.toString();
+  const userJson = webFormData.get("user")?.toString();
   let email: string | undefined;
   let name: string | undefined;
   if (userJson) {

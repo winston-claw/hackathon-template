@@ -1,0 +1,31 @@
+---
+description: App layer conventions for screens, auth, and db
+globs: packages/app/**
+alwaysApply: false
+---
+
+# packages/app — product layer
+
+## Screens (`src/screens/`)
+
+- Compose `@project-template/ui` components — do not duplicate design-system styles inline.
+- Import auth via `../auth` (`useAuth`). Never import auth from apps.
+- Use Solito for navigation: `Link`, `TextLink`, `useRouter` from `solito/link` and `solito/router`.
+- Mark screen files with `"use client"` when they use hooks.
+- Export new screens from `packages/app/index.ts`.
+
+## Auth (`src/auth/`)
+
+- `createAuthProvider` + module-level `useAuth` — apps wire token stores via adapters.
+- Web adapter: `createLocalStorageTokenStore`. Mobile: `createSecureStoreTokenStore`.
+
+## DB (`src/db/`)
+
+- `createConvexClient(url)` for ConvexProvider setup in apps.
+- `api` re-exports from `../../../../convex/_generated/api` — run `npm run convex:dev` after schema changes.
+
+## Dependencies
+
+- `@project-template/ui` — allowed
+- `solito`, `convex` — allowed
+- Do not add dependencies that belong in apps (Next.js, Expo APIs)

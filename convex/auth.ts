@@ -182,7 +182,7 @@ export const loginWithGoogle = mutation({
 });
 
 // --- OAuth: Apple (verify identity_token JWT, then find/create user) ---
-function base64UrlDecode(str: string): Uint8Array {
+function base64UrlDecode(str: string): Uint8Array<ArrayBuffer> {
   const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
   const bin = atob(base64);
   const arr = new Uint8Array(bin.length);

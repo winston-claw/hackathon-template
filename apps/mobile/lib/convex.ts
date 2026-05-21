@@ -1,8 +1,5 @@
-import { createConvexClient } from "@project-template/db";
+import { createConvexClient } from "@project-template/app";
 
-const url =
-  process.env.EXPO_PUBLIC_CONVEX_URL ||
-  process.env.NEXT_PUBLIC_CONVEX_URL ||
-  "";
-
-export const convex = createConvexClient(url);
+export const convex = createConvexClient(
+  process.env.EXPO_PUBLIC_CONVEX_URL ?? "http://localhost:3000"
+);

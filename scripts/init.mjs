@@ -584,14 +584,14 @@ async function main() {
     ["project template", displayName.trim().toLowerCase()],
     ["projecttemplate", compactName],
     ["com.projecttemplate", bundlePrefix],
-    ["@project-template/auth", `@${slug}/auth`],
-    ["@project-template/db", `@${slug}/db`],
+    ["@project-template/app", `@${slug}/app`],
+    ["@project-template/ui", `@${slug}/ui`],
   ];
 
   const filesToReplace = [
     path.join(ROOT, "package.json"),
-    path.join(ROOT, "packages/auth/package.json"),
-    path.join(ROOT, "packages/db/package.json"),
+    path.join(ROOT, "packages/app/package.json"),
+    path.join(ROOT, "packages/ui/package.json"),
     path.join(ROOT, "apps/web/package.json"),
     path.join(ROOT, "apps/mobile/package.json"),
     path.join(ROOT, "apps/web/next.config.mjs"),

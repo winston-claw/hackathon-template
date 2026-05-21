@@ -1,0 +1,20 @@
+---
+description: Design system conventions for packages/ui
+globs: packages/ui/**
+alwaysApply: false
+---
+
+# packages/ui — design system
+
+- Presentational components only. No `useAuth`, no Convex, no Solito, no screen-level logic.
+- Use `colors` and `radius` from `src/theme/` — avoid hardcoded hex values in components.
+- Style with React Native `StyleSheet.create`, not Tailwind or inline DOM styles.
+- Export every public component from `packages/ui/index.ts`.
+- Components accept props for variants/state; they do not fetch data or navigate.
+- Prefer composition: small focused components over large monoliths.
+
+Example structure for a new component:
+
+```
+packages/ui/src/components/card.tsx  → export from index.ts
+```

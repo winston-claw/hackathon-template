@@ -1,0 +1,30 @@
+{
+  "name": "@project-template/app",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./db": "./src/db/index.ts",
+    "./db/api": "./src/db/api.ts"
+  },
+  "peerDependencies": {
+    "@project-template/ui": "*",
+    "convex": "^1.12.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-native": "*",
+    "react-native-safe-area-context": ">= 4.0.0",
+    "solito": "^4.0.0"
+  },
+  "dependencies": {
+    "@project-template/ui": "*",
+    "convex": "^1.39.1",
+    "solito": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "typescript": "~5.9.3"
+  }
+}

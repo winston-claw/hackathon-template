@@ -14,9 +14,9 @@
     "typecheck": "echo 'Mobile typecheck skipped (Expo 54 + React 19 vs react-native types). Run: cd apps/mobile && npx tsc --noEmit to see status.'"
   },
   "dependencies": {
-    "@project-template/auth": "*",
-    "@project-template/db": "*",
-    "convex": "^1.31.7",
+    "@project-template/app": "*",
+    "solito": "^4.4.0",
+    "convex": "^1.39.1",
     "expo": "~54.0.33",
     "expo-apple-authentication": "~8.0.3",
     "expo-auth-session": "~7.0.3",
@@ -35,8 +35,8 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.1.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"

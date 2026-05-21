@@ -4,14 +4,16 @@ import {
   createAuthProvider,
   createLocalStorageTokenStore,
   type AuthApi,
-} from "@project-template/auth";
-import { api } from "@project-template/db/api";
+  useAuth,
+} from "@project-template/app";
+export { useAuth };
+import { api } from "@project-template/app/db/api";
 
 const tokenStore = createLocalStorageTokenStore();
-const { AuthProvider: BaseAuthProvider, useAuth: useAuthBase } =
-  createAuthProvider(api as AuthApi, tokenStore);
-
-export { useAuthBase as useAuth };
+const { AuthProvider: BaseAuthProvider } = createAuthProvider(
+  api as AuthApi,
+  tokenStore
+);
 
 export function AuthProvider({
   children,

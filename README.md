@@ -7,7 +7,7 @@ A production-ready project starter template with Next.js 14, Expo (React Native)
 - **Next.js 14** - App Router, TypeScript, Server Components
 - **Expo 54** - React Native app with Expo Router (iOS, Android, web); React 19, RN 0.81
 - **Convex** - Real-time database + auth (signup, login, sessions, Google/Apple OAuth)
-- **Shared auth** - `@new-app/auth` with platform adapters (localStorage / SecureStore) and optional Google/Apple sign-in
+- **Shared packages** - `@project-template/ui` (design system) and `@project-template/app` (screens, auth, db)
 - **Tailwind CSS** - Utility-first styling (web)
 - **Vercel** - Production-ready deployment (web)
 
@@ -102,22 +102,22 @@ Use the same Convex deployment URL for both apps so they share the same database
 ## Project Structure
 
 ```
-new-app/
+project-template/
 ├── apps/
-│   ├── web/                 # Next.js app
-│   │   ├── app/             # App Router (login, signup, dashboard)
-│   │   ├── lib/             # Auth + Convex client (uses shared packages)
-│   │   └── convex/          # Generated Convex types
-│   └── mobile/             # Expo app (Expo Router)
-│       ├── app/             # Screens (index, login, signup, dashboard)
-│       └── lib/              # Auth + Convex client (uses shared packages)
+│   ├── web/                 # Next.js app (thin routes + platform wiring)
+│   │   ├── app/             # App Router — re-exports screens from @project-template/app
+│   │   └── lib/             # Auth + Convex client setup (platform-specific)
+│   └── mobile/              # Expo app (Expo Router)
+│       ├── app/             # Thin screen routes
+│       └── lib/             # Auth + Convex client setup (platform-specific)
 ├── packages/
-│   ├── auth/                # Shared auth: createAuthProvider, token stores
-│   │   └── adapters/        # Web (localStorage), Mobile (expo-secure-store)
-│   └── db/                  # Shared Convex client (createConvexClient)
+│   ├── ui/                  # Design system: components + theme tokens
+│   └── app/                 # Screens, auth, Convex client
 ├── convex/                  # Convex backend (canonical)
 │   ├── schema.ts
 │   └── auth.ts
+├── AGENTS.md                # Agent instructions (architecture + conventions)
+├── .cursor/rules/           # Cursor-scoped rules
 ├── convex.json
 ├── package.json             # Workspaces + root scripts
 └── tsconfig.base.json
@@ -128,7 +128,7 @@ new-app/
 - **Web**: `/signup`, `/login`, `/dashboard` (protected). Email/password plus **Sign in with Google** and **Sign in with Apple**. Token in `localStorage`.
 - **Mobile**: Same flows; token in `expo-secure-store`. Google (via in-app browser) and Apple (native `expo-apple-authentication` on iOS).
 
-Auth is implemented in `convex/auth.ts` (email/password plus `loginWithGoogle` and `loginWithApple` mutations) and shared UI in `@new-app/auth` with platform-specific token storage. OAuth client IDs and secrets are set by `npm run auth`; configure redirect URIs in Google and Apple consoles to match your app (see Apple manual steps above).
+Auth is implemented in `convex/auth.ts` and `packages/app/src/auth/` with platform-specific token storage in each app (`localStorage` on web, `expo-secure-store` on mobile). OAuth client IDs and secrets are set by `npm run auth`; configure redirect URIs in Google and Apple consoles to match your app (see Apple manual steps above).
 
 ## Scripts (root)
 

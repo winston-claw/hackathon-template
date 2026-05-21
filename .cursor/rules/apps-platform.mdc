@@ -1,0 +1,30 @@
+---
+description: Platform app conventions for apps/web and apps/mobile
+globs: apps/**
+alwaysApply: false
+---
+
+# apps/web and apps/mobile — platform shells
+
+## Routes must stay thin
+
+```tsx
+'use client'; // web only, when re-exporting shared screens
+export { LoginScreen as default } from '@project-template/app';
+```
+
+Do not add screen UI, forms, or business logic in route files.
+
+## What belongs in apps (platform-specific)
+
+- **Web:** `providers.tsx`, `lib/auth.tsx`, `lib/convex-client.ts`, OAuth pages (`/auth/google`, `/auth/apple`), API routes, `next.config.mjs`
+- **Mobile:** `_layout.tsx`, `lib/auth.tsx`, `lib/convex.ts`, `app/auth/callback.tsx`
+
+## Auth wiring pattern
+
+Apps create `AuthProvider` by calling `createAuthProvider(api, tokenStore)` from `@project-template/app` with the platform token store, then wrap the tree in `_layout` / `providers.tsx`.
+
+## Web + react-native-web
+
+- Shared screens transpile via `next.config.mjs` (`transpilePackages`, `react-native-web` alias).
+- Do not import `@project-template/ui` or `@project-template/app` in Server Components without a `'use client'` boundary.

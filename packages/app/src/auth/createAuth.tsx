@@ -33,7 +33,17 @@ type AuthContextValue = {
   loginWithApple?: (args: { identityToken: string; email?: string; name?: string }) => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined
+);
+
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within the AuthProvider");
+  }
+  return context;
+}
 
 function normalizeToken(
   value: string | null | Promise<string | null>
@@ -153,14 +163,6 @@ export function createAuthProvider(
     return (
       <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
     );
-  }
-
-  function useAuth(): AuthContextValue {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-      throw new Error("useAuth must be used within the AuthProvider");
-    }
-    return context;
   }
 
   return { AuthProvider: AuthProviderInner, useAuth };
