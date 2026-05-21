@@ -579,13 +579,13 @@ async function main() {
 
   // --- Replacements ---
   const replacements = [
-    ["project-template", slug],
-    ["Project Template", displayName.trim()],
-    ["project template", displayName.trim().toLowerCase()],
-    ["projecttemplate", compactName],
-    ["com.projecttemplate", bundlePrefix],
-    ["@project-template/app", `@${slug}/app`],
-    ["@project-template/ui", `@${slug}/ui`],
+    ["app-template", slug],
+    ["App Template", displayName.trim()],
+    ["app template", displayName.trim().toLowerCase()],
+    ["apptemplate", compactName],
+    ["com.apptemplate", bundlePrefix],
+    ["@app-template/app", `@${slug}/app`],
+    ["@app-template/ui", `@${slug}/ui`],
   ];
 
   const filesToReplace = [
@@ -767,8 +767,10 @@ async function main() {
   }
 
   console.log("\nDone. Next steps:");
-  console.log("  1. Run: npm run dev  (web) or npm run dev:mobile (mobile)");
-  console.log("  2. To add Google/Apple OAuth later: npm run auth");
+  console.log("  1. Run: npm run dev  (web)");
+  console.log("  2. Mobile: build a dev client first — cd apps/mobile && npx expo run:ios (or eas build --profile development)");
+  console.log("     Then: npm run dev:mobile");
+  console.log("  3. To add Google/Apple OAuth: npm run auth");
   rl.close();
 }
 

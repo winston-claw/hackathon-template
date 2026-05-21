@@ -3,23 +3,28 @@
 import { useState } from "react";
 import { View, Platform } from "react-native";
 import { Link, TextLink } from "solito/link";
-import { useRouter } from "solito/router";
+import { useRouter } from "solito/navigation";
 import {
-  AuthScreen,
-  BackButton,
-  Heading,
-  Subheading,
-  MessageBox,
-  Label,
-  Input,
-  HelperText,
+  Alert,
+  AlertText,
+  Box,
   Button,
+  ButtonText,
   Divider,
-  OAuthButton,
-  FooterText,
-  footerLinkStyle,
-} from "@project-template/ui";
-import { useAuth } from "../auth";
+  FormControl,
+  FormControlHelper,
+  FormControlHelperText,
+  FormControlLabel,
+  FormControlLabelText,
+  Heading,
+  Input,
+  InputField,
+  Pressable,
+  Text,
+} from "@app-template/ui";
+import { AuthScreen } from "../components/auth-screen";
+import { authSubmitButtonClassName, footerLinkStyle } from "../auth/auth-styles";
+import { useAuth, useOAuthActions, getUserFacingErrorMessage } from "../auth";
 import { EMAIL_REGEX } from "../constants";
 
 export function SignupScreen() {
@@ -35,6 +40,11 @@ export function SignupScreen() {
     name: false,
     email: false,
     password: false,
+  });
+  const { runGoogle, runApple } = useOAuthActions({
+    setError,
+    setOauthNotice,
+    setLoading,
   });
 
   const nameIsValid = name.trim().length >= 2;
@@ -64,109 +74,230 @@ export function SignupScreen() {
     try {
       await signup(name.trim(), email.trim(), password);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Signup failed");
+      setError(getUserFacingErrorMessage(err, "Signup failed. Please try again."));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOauthPress = (provider: "Google" | "Apple") => {
-    setError("");
-    setOauthNotice(
-      `${provider} sign-up is coming soon. Continue with email for now.`
-    );
-  };
-
   return (
     <AuthScreen>
-      <BackButton onPress={() => router.back()} />
+      <Pressable
+        onPress={() => router.back()}
+        className="mb-5 h-10 w-10 items-center justify-center self-start rounded-full bg-[#e8e6e1]"
+      >
+        <Text className="text-lg text-typography-900">←</Text>
+      </Pressable>
 
-      <Heading>Create{"\n"}account</Heading>
-      <Subheading>Sign up to get started with your journey.</Subheading>
+      <Heading
+        size="3xl"
+        className="mb-2 text-[32px] font-bold leading-9 tracking-tight text-typography-900"
+      >
+        Create{"\n"}account
+      </Heading>
+      <Text className="mb-8 text-[15px] leading-[22px] text-typography-500">
+        Sign up to get started with your journey.
+      </Text>
 
-      {error ? <MessageBox variant="error">{error}</MessageBox> : null}
-      {oauthNotice ? <MessageBox variant="info">{oauthNotice}</MessageBox> : null}
-
-      <Label style={{ marginTop: 0 }}>Full Name</Label>
-      <Input
-        error={touched.name && !nameIsValid}
-        placeholder="Alex Johnson"
-        value={name}
-        onChangeText={setName}
-        onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
-        autoComplete="name"
-        textContentType="name"
-      />
-      {touched.name && !nameIsValid ? (
-        <HelperText error>Name should be at least 2 characters.</HelperText>
+      {error ? (
+        <Alert action="error" variant="outline" className="mb-4">
+          <AlertText>{error}</AlertText>
+        </Alert>
+      ) : null}
+      {oauthNotice ? (
+        <Alert action="info" variant="outline" className="mb-4">
+          <AlertText>{oauthNotice}</AlertText>
+        </Alert>
       ) : null}
 
-      <Label>Email</Label>
-      <Input
-        error={touched.email && !emailIsValid}
-        placeholder="you@example.com"
-        value={email}
-        onChangeText={(value) => setEmail(value.trimStart())}
-        onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="email-address"
-        autoComplete="email"
-        textContentType="emailAddress"
-      />
-      {touched.email && !emailIsValid ? (
-        <HelperText error>Use a valid email format.</HelperText>
-      ) : null}
+      <FormControl isInvalid={touched.name && !nameIsValid}>
+        <FormControlLabel className="mb-2">
+          <FormControlLabelText className="text-[13px] font-bold text-typography-900">
+            Full Name
+          </FormControlLabelText>
+        </FormControlLabel>
+        <Input
+          variant="outline"
+          size="md"
+          isInvalid={touched.name && !nameIsValid}
+          className="h-12 rounded-xl border-outline-200 bg-white"
+        >
+          <InputField
+            placeholder="Alex Johnson"
+            value={name}
+            onChangeText={setName}
+            onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
+            autoComplete="name"
+            textContentType="name"
+            placeholderTextColor="#888888"
+            className="px-4 text-base text-typography-900"
+          />
+        </Input>
+        {touched.name && !nameIsValid ? (
+          <FormControlHelper className="mt-1.5">
+            <FormControlHelperText className="text-xs text-error-500">
+              Name should be at least 2 characters.
+            </FormControlHelperText>
+          </FormControlHelper>
+        ) : null}
+      </FormControl>
 
-      <Label>Password</Label>
-      <Input
-        error={touched.password && !passwordIsValid}
-        placeholder="••••••••"
-        value={password}
-        onChangeText={setPassword}
-        onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
-        secureTextEntry
-        autoComplete="password-new"
-        textContentType="newPassword"
-      />
-      <HelperText>Minimum 6 characters.</HelperText>
+      <FormControl
+        isInvalid={touched.email && !emailIsValid}
+        className="mt-6"
+      >
+        <FormControlLabel className="mb-2">
+          <FormControlLabelText className="text-[13px] font-bold text-typography-900">
+            Email
+          </FormControlLabelText>
+        </FormControlLabel>
+        <Input
+          variant="outline"
+          size="md"
+          isInvalid={touched.email && !emailIsValid}
+          className="h-12 rounded-xl border-outline-200 bg-white"
+        >
+          <InputField
+            placeholder="you@example.com"
+            value={email}
+            onChangeText={(value) => setEmail(value.trimStart())}
+            onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
+            placeholderTextColor="#888888"
+            className="px-4 text-base text-typography-900"
+          />
+        </Input>
+        {touched.email && !emailIsValid ? (
+          <FormControlHelper className="mt-1.5">
+            <FormControlHelperText className="text-xs text-error-500">
+              Use a valid email format.
+            </FormControlHelperText>
+          </FormControlHelper>
+        ) : null}
+      </FormControl>
 
-      <Button onPress={handleSubmit} disabled={!canSubmit}>
-        {loading ? "Creating account..." : "Create Account"}
+      <FormControl
+        isInvalid={touched.password && !passwordIsValid}
+        className="mt-6"
+      >
+        <FormControlLabel className="mb-2">
+          <FormControlLabelText className="text-[13px] font-bold text-typography-900">
+            Password
+          </FormControlLabelText>
+        </FormControlLabel>
+        <Input
+          variant="outline"
+          size="md"
+          isInvalid={touched.password && !passwordIsValid}
+          className="h-12 rounded-xl border-outline-200 bg-white"
+        >
+          <InputField
+            placeholder="••••••••"
+            value={password}
+            onChangeText={setPassword}
+            onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+            secureTextEntry
+            autoComplete="password-new"
+            textContentType="newPassword"
+            placeholderTextColor="#888888"
+            className="px-4 text-base text-typography-900"
+          />
+        </Input>
+        <FormControlHelper className="mt-1.5">
+          <FormControlHelperText className="text-xs text-typography-500">
+            Minimum 6 characters.
+          </FormControlHelperText>
+        </FormControlHelper>
+      </FormControl>
+
+      <Button
+        action="primary"
+        size="lg"
+        isDisabled={!canSubmit}
+        onPress={handleSubmit}
+        className={authSubmitButtonClassName}
+      >
+        <ButtonText className="font-semibold text-white">
+          {loading ? "Creating account..." : "Create Account"}
+        </ButtonText>
       </Button>
 
-      <Divider label="or continue with" />
+      <Box className="mb-3.5 mt-7 flex-row items-center gap-3">
+        <Divider className="flex-1 bg-outline-200" />
+        <Text className="text-[13px] text-typography-500">or continue with</Text>
+        <Divider className="flex-1 bg-outline-200" />
+      </Box>
 
       {Platform.OS === "web" ? (
         <>
           <Link href="/auth/google">
             <View>
-              <OAuthButton>Sign up with Google</OAuthButton>
+              <Button
+                action="primary"
+                variant="outline"
+                size="lg"
+                className="mt-2.5 h-12 w-full rounded-full border-outline-200 bg-white"
+              >
+                <ButtonText className="font-semibold text-typography-900">
+                  Sign up with Google
+                </ButtonText>
+              </Button>
             </View>
           </Link>
           <Link href="/auth/apple">
             <View>
-              <OAuthButton variant="dark">Sign up with Apple</OAuthButton>
+              <Button
+                action="primary"
+                size="lg"
+                className="mt-2.5 h-12 w-full rounded-full border-typography-900 bg-typography-900"
+              >
+                <ButtonText className="font-semibold text-white">
+                  Sign up with Apple
+                </ButtonText>
+              </Button>
             </View>
           </Link>
         </>
       ) : (
         <>
-          <OAuthButton onPress={() => handleOauthPress("Google")}>
-            Sign up with Google
-          </OAuthButton>
-          <OAuthButton variant="dark" onPress={() => handleOauthPress("Apple")}>
-            Sign up with Apple
-          </OAuthButton>
+          <Button
+            action="primary"
+            variant="outline"
+            size="lg"
+            isDisabled={loading}
+            onPress={() => void runGoogle()}
+            className="mt-2.5 h-12 w-full rounded-full border-outline-200 bg-white"
+          >
+            <ButtonText className="font-semibold text-typography-900">
+              Sign up with Google
+            </ButtonText>
+          </Button>
+          {Platform.OS === "ios" ? (
+            <Button
+              action="primary"
+              size="lg"
+              isDisabled={loading}
+              onPress={() => void runApple()}
+              className="mt-2.5 h-12 w-full rounded-full border-typography-900 bg-typography-900"
+            >
+              <ButtonText className="font-semibold text-white">
+                Sign up with Apple
+              </ButtonText>
+            </Button>
+          ) : null}
         </>
       )}
 
-      <FooterText>
+      <Text className="mt-7 text-center text-[13px] leading-[18px] text-typography-500">
         Already have an account?{" "}
         <TextLink href="/login" style={footerLinkStyle}>
           Sign in
         </TextLink>
-      </FooterText>
+      </Text>
     </AuthScreen>
   );
 }

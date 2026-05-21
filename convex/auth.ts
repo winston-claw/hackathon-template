@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { AppErrorCode, appError } from "./errors";
 
 // Simple hash function
 async function hashPassword(password: string): Promise<string> {
@@ -26,7 +27,7 @@ export const signup = mutation({
       .first();
 
     if (existing) {
-      throw new Error("User already exists");
+      appError(AppErrorCode.USER_ALREADY_EXISTS);
     }
 
     const passwordHash = await hashPassword(args.password);
@@ -61,16 +62,16 @@ export const login = mutation({
       .first();
 
     if (!user) {
-      throw new Error("Invalid email or password");
+      appError(AppErrorCode.INVALID_CREDENTIALS);
     }
 
     if (user.passwordHash === undefined) {
-      throw new Error("This account uses a sign-in provider; use Google or Apple to sign in.");
+      appError(AppErrorCode.OAUTH_ACCOUNT_REQUIRED);
     }
 
     const passwordHash = await hashPassword(args.password);
     if (user.passwordHash !== passwordHash) {
-      throw new Error("Invalid email or password");
+      appError(AppErrorCode.INVALID_CREDENTIALS);
     }
 
     const token = generateToken();
@@ -133,7 +134,7 @@ export const loginWithGoogle = mutation({
       `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(args.idToken)}`
     );
     if (!res.ok) {
-      throw new Error("Invalid Google token");
+      appError(AppErrorCode.INVALID_GOOGLE_TOKEN);
     }
     const data = (await res.json()) as {
       email?: string;
@@ -157,7 +158,7 @@ export const loginWithGoogle = mutation({
         .withIndex("by_email", (q) => q.eq("email", email))
         .first();
       if (existingByEmail) {
-        throw new Error("An account with this email already exists. Sign in with email/password or link the provider.");
+        appError(AppErrorCode.GOOGLE_EMAIL_CONFLICT);
       }
       const userId = await ctx.db.insert("users", {
         name,
@@ -234,7 +235,13 @@ export const loginWithApple = mutation({
     name: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const payload = await verifyAppleIdentityToken(args.identityToken);
+    let payload: { sub: string; email?: string };
+    try {
+      payload = await verifyAppleIdentityToken(args.identityToken);
+    } catch {
+      appError(AppErrorCode.APPLE_SIGN_IN_FAILED);
+    }
+
     const providerUserId = payload.sub;
     const email = payload.email ?? args.email ?? "";
     const name = args.name ?? (email || "User");
@@ -254,7 +261,7 @@ export const loginWithApple = mutation({
             .first()
         : null;
       if (existingByEmail) {
-        throw new Error("An account with this email already exists.");
+        appError(AppErrorCode.APPLE_EMAIL_CONFLICT);
       }
       const userId = await ctx.db.insert("users", {
         name,

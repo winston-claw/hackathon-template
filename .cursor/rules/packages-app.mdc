@@ -8,16 +8,40 @@ alwaysApply: false
 
 ## Screens (`src/screens/`)
 
-- Compose `@project-template/ui` components — do not duplicate design-system styles inline.
+- Compose `@app-template/ui` components — do not duplicate design-system styles inline.
 - Import auth via `../auth` (`useAuth`). Never import auth from apps.
-- Use Solito for navigation: `Link`, `TextLink`, `useRouter` from `solito/link` and `solito/router`.
+- Use Solito for navigation: `Link`, `TextLink` from `solito/link`; `useRouter` from `solito/navigation` (Next.js App Router on web).
 - Mark screen files with `"use client"` when they use hooks.
 - Export new screens from `packages/app/index.ts`.
+- **Safe area:** wrap full-screen roots in `Screen` from `../components/screen`. Use `AuthScreen` for auth forms (login/signup). Never apply `useSafeAreaInsets()` or fixed top padding in screen files — `Screen` handles insets.
+
+```tsx
+import { Screen } from '../components/screen';
+
+export function MyScreen() {
+  return (
+    <Screen className="flex-1 bg-background-50">
+      {/* content */}
+    </Screen>
+  );
+}
+```
 
 ## Auth (`src/auth/`)
 
 - `createAuthProvider` + module-level `useAuth` — apps wire token stores via adapters.
 - Web adapter: `createLocalStorageTokenStore`. Mobile: `createSecureStoreTokenStore`.
+- **User-facing errors:** backend throws `appError(AppErrorCode.X)` from `convex/errors.ts`. UI copy lives in `packages/app/src/errors/messages.ts`. Use `getUserFacingErrorMessage(error, fallback)` in every `catch` — it maps codes only, never reads `error.message`.
+
+```tsx
+import { getUserFacingErrorMessage } from '../auth/errors';
+
+try {
+  await login(email, password);
+} catch (error) {
+  setError(getUserFacingErrorMessage(error, 'Login failed. Check your email and password.'));
+}
+```
 
 ## DB (`src/db/`)
 
@@ -26,6 +50,6 @@ alwaysApply: false
 
 ## Dependencies
 
-- `@project-template/ui` — allowed
+- `@app-template/ui` — allowed
 - `solito`, `convex` — allowed
 - Do not add dependencies that belong in apps (Next.js, Expo APIs)

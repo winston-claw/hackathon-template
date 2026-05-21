@@ -1,1 +1,1 @@
-export { LoginScreen as default } from "@project-template/app";
+export { LoginScreen as default } from "@app-template/app";

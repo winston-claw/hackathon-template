@@ -8,7 +8,7 @@ alwaysApply: true
 Three layers — respect boundaries:
 
 1. **`packages/ui`** — design system only (components + theme). No screens, auth, Convex, or Solito.
-2. **`packages/app`** — screens, auth, db client. Composes `@project-template/ui`.
+2. **`packages/app`** — screens, auth, db client. Composes `@app-template/ui`.
 3. **`apps/web` + `apps/mobile`** — thin routes and platform wiring only.
 
 When adding UI:

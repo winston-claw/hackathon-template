@@ -5,9 +5,9 @@ import {
   createLocalStorageTokenStore,
   type AuthApi,
   useAuth,
-} from "@project-template/app";
+} from "@app-template/app";
 export { useAuth };
-import { api } from "@project-template/app/db/api";
+import { api } from "@app-template/app/db/api";
 
 const tokenStore = createLocalStorageTokenStore();
 const { AuthProvider: BaseAuthProvider } = createAuthProvider(

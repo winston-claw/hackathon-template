@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
-import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
-import { useRouter } from "solito/router";
+import { ScrollView } from "react-native";
+import { useRouter } from "solito/navigation";
+import {
+  Box,
+  Button,
+  ButtonText,
+  Text,
+} from "@app-template/ui";
+import { AuthGuard } from "../components/auth-guard";
+import { Screen } from "../components/screen";
 import { useAuth } from "../auth";
-import { colors } from "@project-template/ui";
 
 const STATS = [
   { label: "Total Users", value: "1,234", change: "+12%" },
@@ -14,254 +20,79 @@ const STATS = [
 ];
 
 export function DashboardScreen() {
+  return (
+    <AuthGuard>
+      <DashboardContent />
+    </AuthGuard>
+  );
+}
+
+function DashboardContent() {
   const router = useRouter();
-  const { user, logout, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/login");
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
+  const { user, logout } = useAuth();
 
   if (!user) {
     return null;
   }
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
-        <View style={styles.brandRow}>
-          <View style={styles.brandIcon}>
-            <Text style={styles.brandIconText}>Y</Text>
-          </View>
-          <Text style={styles.headerTitle}>Dashboard</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <Text style={styles.email}>{user.email}</Text>
-          <Pressable style={styles.logoutButton} onPress={() => logout()}>
-            <Text style={styles.logoutText}>Sign Out</Text>
-          </Pressable>
-        </View>
-      </View>
+    <Screen className="flex-1 flex-col bg-background-50">
+      <Box className="bg-background-0 border-b border-outline-200 px-6 py-4 flex-row flex-wrap items-center justify-between gap-3">
+        <Box className="flex-row items-center gap-2">
+          <Box className="w-7 h-7 rounded-full bg-primary-500 items-center justify-center">
+            <Text className="text-typography-0 text-xs font-bold">Y</Text>
+          </Box>
+          <Text className="font-bold text-lg text-typography-900">Dashboard</Text>
+        </Box>
+        <Box className="flex-row items-center gap-4">
+          <Text className="text-sm text-typography-500">{user.email}</Text>
+          <Button action="primary" variant="outline" size="md" onPress={() => logout()}>
+            <ButtonText>Sign Out</ButtonText>
+          </Button>
+        </Box>
+      </Box>
 
-      <ScrollView contentContainerStyle={styles.main}>
-        <View style={styles.welcomeBlock}>
-          <Text style={styles.welcomeTitle}>
+      <ScrollView contentContainerStyle={{ padding: 24, maxWidth: 1120, width: "100%", alignSelf: "center" }}>
+        <Box className="mb-8">
+          <Text className="text-2xl font-bold text-typography-900 mb-2">
             Welcome back{user.name ? `, ${user.name}` : ""}
           </Text>
-          <Text style={styles.welcomeSubtitle}>
+          <Text className="text-base text-typography-500 leading-6">
             This is your authenticated dashboard. Only logged-in users can see
             this page.
           </Text>
-        </View>
+        </Box>
 
-        <View style={styles.statsGrid}>
+        <Box className="flex-row flex-wrap gap-4 mb-8">
           {STATS.map((stat) => (
-            <View key={stat.label} style={styles.statCard}>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-              <View style={styles.statRow}>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statChange}>{stat.change}</Text>
-              </View>
-            </View>
+            <Box
+              key={stat.label}
+              className="bg-background-0 p-5 rounded-2xl border border-outline-200 min-w-[200px] grow basis-[45%]"
+            >
+              <Text className="text-sm text-typography-500 mb-2">{stat.label}</Text>
+              <Box className="flex-row items-baseline gap-2">
+                <Text className="text-3xl font-bold text-typography-900">{stat.value}</Text>
+                <Text className="text-sm text-success-600 font-semibold">{stat.change}</Text>
+              </Box>
+            </Box>
           ))}
-        </View>
+        </Box>
 
-        <View style={styles.actionsCard}>
-          <Text style={styles.actionsTitle}>Quick Actions</Text>
-          <View style={styles.actionsRow}>
-            <Pressable style={styles.actionPrimary}>
-              <Text style={styles.actionPrimaryText}>Create New Project</Text>
-            </Pressable>
-            <Pressable style={styles.actionSecondary}>
-              <Text style={styles.actionSecondaryText}>View Analytics</Text>
-            </Pressable>
-            <Pressable style={styles.actionSecondary}>
-              <Text style={styles.actionSecondaryText}>Invite Team Member</Text>
-            </Pressable>
-          </View>
-        </View>
+        <Box className="bg-background-0 p-6 rounded-2xl border border-outline-200">
+          <Text className="text-lg font-semibold text-typography-900 mb-4">Quick Actions</Text>
+          <Box className="flex-row flex-wrap gap-3">
+            <Button action="primary" size="md" onPress={() => router.push("/tasks")}>
+              <ButtonText>View Tasks</ButtonText>
+            </Button>
+            <Button action="primary" variant="outline" size="md">
+              <ButtonText>View Analytics</ButtonText>
+            </Button>
+            <Button action="primary" variant="outline" size="md">
+              <ButtonText>Invite Team Member</ButtonText>
+            </Button>
+          </Box>
+        </Box>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: colors.background,
-  },
-  loadingText: {
-    color: "#1a1a1a",
-    fontSize: 16,
-  },
-  header: {
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd8d0",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  brandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  brandIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#2d2d2d",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  brandIconText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  headerTitle: {
-    fontWeight: "700",
-    fontSize: 18,
-    color: "#1a1a1a",
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  email: {
-    fontSize: 14,
-    color: "#888",
-  },
-  logoutButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: "#ddd8d0",
-    borderRadius: 999,
-  },
-  logoutText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1a1a1a",
-  },
-  main: {
-    padding: 24,
-    maxWidth: 1120,
-    width: "100%",
-    alignSelf: "center",
-  },
-  welcomeBlock: {
-    marginBottom: 32,
-  },
-  welcomeTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1a1a1a",
-    marginBottom: 8,
-    letterSpacing: -0.3,
-  },
-  welcomeSubtitle: {
-    color: "#888",
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    marginBottom: 32,
-  },
-  statCard: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#ddd8d0",
-    minWidth: 200,
-    flexGrow: 1,
-    flexBasis: "45%",
-  },
-  statLabel: {
-    fontSize: 14,
-    color: "#888",
-    marginBottom: 8,
-  },
-  statRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#1a1a1a",
-  },
-  statChange: {
-    fontSize: 14,
-    color: "#2d8a6e",
-    fontWeight: "600",
-  },
-  actionsCard: {
-    backgroundColor: "#fff",
-    padding: 24,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#ddd8d0",
-  },
-  actionsTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    marginBottom: 16,
-  },
-  actionsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  actionPrimary: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: "#2d2d2d",
-    borderRadius: 999,
-  },
-  actionPrimaryText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  actionSecondary: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ddd8d0",
-    borderRadius: 999,
-  },
-  actionSecondaryText: {
-    color: "#1a1a1a",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-});

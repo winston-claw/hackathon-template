@@ -1,9 +1,6 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import { Providers } from './providers';
-import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
+import '@app-template/ui/global.css';
 
 export const metadata: Metadata = {
   title: 'YourApp | Discover Something New',
@@ -16,8 +13,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className} style={{ display: 'flex', flex: 1 }}>
+    <html lang="en" className="h-full">
+      <body
+        className="font-inter flex min-h-full flex-1 flex-col"
+        style={{ backgroundColor: '#f7f7f5' }}
+      >
         <Providers>
           {children}
         </Providers>

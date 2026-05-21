@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../lib/auth";
+import { getUserFacingErrorMessage } from "@app-template/app";
 
 const AUTH_TOKEN_KEY = "auth_token";
 
@@ -31,7 +32,9 @@ function AuthCallbackContent() {
     if (idToken && loginWithGoogle) {
       loginWithGoogle(idToken)
         .then(() => router.replace("/dashboard"))
-        .catch((err) => setError(err instanceof Error ? err.message : "Sign-in failed"));
+        .catch((err) =>
+          setError(getUserFacingErrorMessage(err, "Sign-in failed."))
+        );
       return;
     }
 

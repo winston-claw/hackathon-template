@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@project-template/app/db/api";
+import { fetchMutation } from "convex/nextjs";
+import { api } from "@app-template/app/db/api";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -34,13 +34,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=no_apple_token", req.url));
   }
 
-  const client = new ConvexHttpClient(convexUrl);
   try {
-    const result = await client.mutation(api.auth.loginWithApple, {
-      identityToken,
-      email,
-      name,
-    });
+    const result = await fetchMutation(
+      api.auth.loginWithApple,
+      { identityToken, email, name },
+      { url: convexUrl }
+    );
     const origin = new URL(req.url).origin;
     return NextResponse.redirect(
       new URL(`/auth/callback?token=${encodeURIComponent(result.token)}&provider=apple`, origin)

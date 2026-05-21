@@ -2,20 +2,22 @@
 
 import { useRef, useState, useCallback } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
   Dimensions,
   ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
 import { TextLink } from "solito/link";
-import { useRouter } from "solito/router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "solito/navigation";
+import {
+  Box,
+  Button,
+  ButtonText,
+  Text,
+} from "@app-template/ui";
+import { Screen } from "../components/screen";
+import { footerLinkStyle } from "../auth/auth-styles";
 import { ONBOARDING_SLIDES } from "../constants";
-import { colors } from "@project-template/ui";
 
 const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = Math.min(width * 0.44, 200);
@@ -24,7 +26,6 @@ export function OnboardingHomeScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -36,8 +37,8 @@ export function OnboardingHomeScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
-      <View style={styles.carouselArea}>
+    <Screen className="flex-1 bg-[#f5f5f0]" padding={{ top: 20, bottom: 20 }}>
+      <Box className="flex-1">
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -46,159 +47,63 @@ export function OnboardingHomeScreen() {
           onMomentumScrollEnd={handleScroll}
         >
           {ONBOARDING_SLIDES.map((slide, i) => (
-            <View key={i} style={styles.slide}>
-              <View style={styles.circleImage}>
-                <Text style={styles.circleIcon}>{slide.icon}</Text>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeIcon}>{slide.badge}</Text>
-                </View>
-              </View>
-              <Text style={styles.title}>{slide.title}</Text>
-            </View>
+            <Box
+              key={i}
+              style={{ width }}
+              className="justify-center px-7 pt-5"
+            >
+              <Box
+                style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE, borderRadius: CIRCLE_SIZE / 2 }}
+                className="relative mb-6 items-center justify-center bg-[#e8e5df]"
+              >
+                <Text className="text-5xl text-[#aaa69e]">{slide.icon}</Text>
+                <Box className="absolute -bottom-1 -right-1 h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm">
+                  <Text className="text-base">{slide.badge}</Text>
+                </Box>
+              </Box>
+              <Text className="text-[38px] font-bold leading-[44px] tracking-tight text-[#1a1a1a]">
+                {slide.title}
+              </Text>
+            </Box>
           ))}
         </ScrollView>
-      </View>
+      </Box>
 
-      <View style={styles.middle}>
-        <Text style={styles.subtitle}>SWIPE TO DISCOVER MORE</Text>
-        <View style={styles.dots}>
+      <Box className="items-center gap-3.5 py-6">
+        <Text className="text-center text-[11px] font-semibold tracking-[2px] text-[#999999]">
+          SWIPE TO DISCOVER MORE
+        </Text>
+        <Box className="flex-row items-center gap-2">
           {ONBOARDING_SLIDES.map((_, i) => (
-            <View
+            <Box
               key={i}
-              style={[styles.dot, i === activeIndex && styles.dotActive]}
+              className={`h-2 w-2 rounded-full ${
+                i === activeIndex ? "bg-[#1a1a1a]" : "bg-[#d4d4d0]"
+              }`}
             />
           ))}
-        </View>
-      </View>
+        </Box>
+      </Box>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.primaryButton,
-            pressed && styles.buttonPressed,
-          ]}
+      <Box className="gap-4 px-7">
+        <Button
+          action="primary"
+          size="lg"
           onPress={() => router.push("/signup")}
+          className="h-[54px] w-full self-stretch rounded-full border-[#2d2d2d] bg-[#2d2d2d]"
         >
-          <Text style={styles.primaryButtonText}>Get Started</Text>
-        </Pressable>
+          <ButtonText className="text-base font-semibold text-white">
+            Get Started
+          </ButtonText>
+        </Button>
 
-        <Text style={styles.footerText}>
+        <Text className="text-center text-sm text-[#888888]">
           Already have an account?{" "}
-          <TextLink href="/login" style={styles.link}>
+          <TextLink href="/login" style={footerLinkStyle}>
             Log In
           </TextLink>
         </Text>
-      </View>
-    </View>
+      </Box>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  carouselArea: {
-    flex: 1,
-  },
-  slide: {
-    width,
-    paddingHorizontal: 28,
-    paddingTop: 20,
-    justifyContent: "center",
-  },
-  circleImage: {
-    width: CIRCLE_SIZE,
-    height: CIRCLE_SIZE,
-    borderRadius: CIRCLE_SIZE / 2,
-    backgroundColor: "#e8e5df",
-    marginBottom: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  circleIcon: {
-    fontSize: 48,
-    color: "#aaa69e",
-  },
-  badge: {
-    position: "absolute",
-    bottom: 6,
-    right: -4,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#ffffff",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  badgeIcon: {
-    fontSize: 16,
-  },
-  title: {
-    fontSize: 38,
-    lineHeight: 44,
-    fontWeight: "700",
-    color: "#1a1a1a",
-    letterSpacing: -0.5,
-  },
-  middle: {
-    alignItems: "center",
-    gap: 14,
-    paddingVertical: 24,
-  },
-  subtitle: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#999",
-    letterSpacing: 2,
-    textAlign: "center",
-  },
-  dots: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#d4d4d0",
-  },
-  dotActive: {
-    backgroundColor: "#1a1a1a",
-  },
-  footer: {
-    gap: 16,
-    paddingHorizontal: 28,
-    alignItems: "center",
-  },
-  primaryButton: {
-    backgroundColor: "#2d2d2d",
-    borderRadius: 30,
-    paddingVertical: 17,
-    alignItems: "center",
-    width: "100%",
-  },
-  primaryButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  buttonPressed: {
-    opacity: 0.85,
-  },
-  footerText: {
-    color: "#888",
-    fontSize: 14,
-    textAlign: "center",
-  },
-  link: {
-    color: "#1a1a1a",
-    fontWeight: "700",
-  },
-});

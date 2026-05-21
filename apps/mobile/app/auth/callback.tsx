@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
-import * as SecureStore from "expo-secure-store";
 import { useAuth } from "../../lib/auth";
-
-const AUTH_TOKEN_KEY = "auth_token";
+import { getUserFacingErrorMessage } from "@app-template/app";
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, loginWithApple } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -17,40 +15,40 @@ export default function AuthCallbackScreen() {
       if (!url) return;
       const parsed = Linking.parse(url);
       const fragment = (url.split("#")[1] || "").replace(/^#/, "");
-      const params = new URLSearchParams(fragment || parsed.queryParams?.toString() || "");
-      const idToken = params.get("id_token") || (parsed.queryParams?.id_token as string);
-      const token = params.get("token") || (parsed.queryParams?.token as string);
-      const provider = params.get("provider") || (parsed.queryParams?.provider as string);
-
-      if (token && provider === "apple") {
-        await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
-        router.replace("/dashboard");
-        return;
-      }
+      const params = new URLSearchParams(
+        fragment || parsed.queryParams?.toString() || ""
+      );
+      const idToken =
+        params.get("id_token") || (parsed.queryParams?.id_token as string);
 
       if (idToken && loginWithGoogle) {
         try {
           await loginWithGoogle(idToken);
           router.replace("/dashboard");
         } catch (e) {
-          setError(e instanceof Error ? e.message : "Sign-in failed");
+          setError(getUserFacingErrorMessage(e, "Sign-in failed."));
         }
         return;
       }
 
-      if (!idToken && !token) setError("No token received.");
+      if (!idToken) {
+        setError("No token received from provider.");
+      }
     };
 
-    Linking.getInitialURL().then(handleUrl);
-    const sub = Linking.addEventListener("url", (e) => handleUrl(e.url));
+    void Linking.getInitialURL().then(handleUrl);
+    const sub = Linking.addEventListener("url", (e) => void handleUrl(e.url));
     return () => sub.remove();
-  }, [router, loginWithGoogle]);
+  }, [router, loginWithGoogle, loginWithApple]);
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.error}>{error}</Text>
-        <Text style={styles.link} onPress={() => router.replace("/login")}>
+      <View className="flex-1 items-center justify-center bg-background-50 p-6">
+        <Text className="mb-3 text-center text-error-600">{error}</Text>
+        <Text
+          className="font-semibold text-typography-900"
+          onPress={() => router.replace("/login")}
+        >
           Back to login
         </Text>
       </View>
@@ -58,22 +56,11 @@ export default function AuthCallbackScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 items-center justify-center bg-background-50 p-6">
       <ActivityIndicator size="large" />
-      <Text style={styles.text}>Completing sign-in…</Text>
+      <Text className="mt-4 text-base text-typography-500">
+        Completing sign-in…
+      </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: "#f8fafc",
-  },
-  text: { marginTop: 16, fontSize: 16, color: "#64748b" },
-  error: { color: "#dc2626", marginBottom: 12, textAlign: "center" },
-  link: { color: "#2563eb" },
-});

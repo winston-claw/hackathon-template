@@ -1,3 +1,3 @@
 'use client';
 
-export { MarketingHomeScreen as default } from '@project-template/app';
+export { MarketingHomeScreen as default } from '@app-template/app';

@@ -1,8 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "jsxImportSource": "nativewind",
+    "lib": ["ES2022", "DOM"],
+    "declaration": false,
+    "declarationMap": false
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "../ui/nativewind-env.d.ts"],
   "exclude": ["node_modules"]
 }

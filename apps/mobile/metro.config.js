@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
 
 const projectRoot = __dirname;
@@ -6,13 +7,17 @@ const monorepoRoot = path.resolve(projectRoot, "../..");
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch the monorepo root so Metro picks up changes in packages/*
 config.watchFolders = [monorepoRoot];
 
-// Resolve node_modules from both the app and the monorepo root
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(monorepoRoot, "node_modules"),
 ];
 
-module.exports = config;
+config.resolver.disableHierarchicalLookup = true;
+
+module.exports = withNativeWind(config, {
+  input: path.resolve(monorepoRoot, "packages/ui/global.css"),
+  configPath: path.resolve(projectRoot, "tailwind.config.js"),
+  forceWriteFileSystem: true,
+});

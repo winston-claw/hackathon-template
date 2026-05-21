@@ -1,5 +1,5 @@
 ---
-description: Design system conventions for packages/ui
+description: Design system package conventions
 globs: packages/ui/**
 alwaysApply: false
 ---
@@ -7,14 +7,18 @@ alwaysApply: false
 # packages/ui — design system
 
 - Presentational components only. No `useAuth`, no Convex, no Solito, no screen-level logic.
-- Use `colors` and `radius` from `src/theme/` — avoid hardcoded hex values in components.
-- Style with React Native `StyleSheet.create`, not Tailwind or inline DOM styles.
+- **Gluestack v3 + NativeWind** — add primitives via `npx gluestack-ui add <component>` inside `packages/ui`.
+- Theme tokens live in `src/components/ui/gluestack-ui-provider/config.ts` — customize palette there, not in ad-hoc StyleSheet files.
+- Style with NativeWind utility classes on Gluestack/RN components. Do not add new raw `StyleSheet.create` components.
 - Export every public component from `packages/ui/index.ts`.
+- Export `UIProvider` and `@app-template/ui/global.css` for app shells.
 - Components accept props for variants/state; they do not fetch data or navigate.
-- Prefer composition: small focused components over large monoliths.
+- Export Gluestack primitives from `packages/ui/index.ts` (e.g. `Button`, `ButtonText`, `Input`, `InputField`). Do not add thin wrappers in `src/components/` unless a stable public API truly needs it.
+- Screen layout and product-specific styling belong in `@app-template/app`, not here.
 
-Example structure for a new component:
+Example: add a primitive, then export it:
 
 ```
-packages/ui/src/components/card.tsx  → export from index.ts
+packages/ui/src/components/ui/card/   # via gluestack-ui add
+packages/ui/index.ts                  # export { Card } from './src/components/ui/card'
 ```

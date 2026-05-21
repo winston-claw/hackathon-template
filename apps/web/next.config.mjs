@@ -1,11 +1,17 @@
+import { withGluestackUI } from '@gluestack/ui-next-adapter';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
-    '@project-template/app',
-    '@project-template/ui',
+    '@app-template/app',
+    '@app-template/ui',
     'react-native',
     'react-native-web',
     'solito',
+    'nativewind',
+    'react-native-css-interop',
+    '@gluestack-ui/core',
+    '@gluestack-ui/utils',
   ],
   env: {
     NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL || 'http://localhost:3000',
@@ -31,4 +37,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withGluestackUI(nextConfig);

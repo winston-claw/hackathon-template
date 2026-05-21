@@ -8,11 +8,16 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { useMutation } from "convex/react";
+import { useConvex, useMutation } from "convex/react";
 import type { FunctionReference } from "convex/server";
 import type { TokenStore, AuthProviderOptions, User } from "./types";
+import { getUserFacingErrorMessage } from "../errors/get-user-facing-message";
 
-/** API shape expected by auth: Convex mutation refs for login, signup, logout, OAuth */
+function rethrowAsUserFacing(error: unknown, fallback: string): never {
+  throw new Error(getUserFacingErrorMessage(error, fallback));
+}
+
+/** API shape expected by auth: Convex auth functions */
 export interface AuthApi {
   auth: {
     login: FunctionReference<"mutation">;
@@ -20,11 +25,13 @@ export interface AuthApi {
     logout: FunctionReference<"mutation">;
     loginWithGoogle: FunctionReference<"mutation">;
     loginWithApple: FunctionReference<"mutation">;
+    me: FunctionReference<"query">;
   };
 }
 
 type AuthContextValue = {
   user: User | null;
+  token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
@@ -80,8 +87,10 @@ export function createAuthProvider(
     onLogout = defaultOnLogout,
   }: AuthProviderProps) {
     const [user, setUser] = useState<User | null>(null);
+    const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const convex = useConvex();
     const loginMutation = useMutation(api.auth.login);
     const signupMutation = useMutation(api.auth.signup);
     const logoutMutation = useMutation(api.auth.logout);
@@ -90,32 +99,74 @@ export function createAuthProvider(
 
     useEffect(() => {
       let cancelled = false;
-      (async () => {
-        const token = await normalizeToken(tokenStore.getToken());
+
+      async function restoreSession() {
+        const storedToken = await normalizeToken(tokenStore.getToken());
         if (cancelled) return;
-        setLoading(false);
-      })();
+
+        if (!storedToken) {
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const me = await convex.query(api.auth.me, { token: storedToken });
+          if (cancelled) return;
+
+          if (me) {
+            setToken(storedToken);
+            setUser(me);
+          } else {
+            await normalizeVoid(() => tokenStore.removeToken());
+            setToken(null);
+            setUser(null);
+          }
+        } catch {
+          if (!cancelled) {
+            await normalizeVoid(() => tokenStore.removeToken());
+            setToken(null);
+            setUser(null);
+          }
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      }
+
+      void restoreSession();
       return () => {
         cancelled = true;
       };
-    }, []);
+    }, [convex]);
 
     const login = useCallback(
       async (email: string, password: string) => {
-        const result = await loginMutation({ email, password });
-        await normalizeVoid(() => tokenStore.setToken(result.token));
-        setUser({ userId: result.userId, name: result.name, email });
-        onLogin?.();
+        try {
+          const result = await loginMutation({ email, password });
+          await normalizeVoid(() => tokenStore.setToken(result.token));
+          setToken(result.token);
+          setUser({ userId: result.userId, name: result.name, email });
+          onLogin?.();
+        } catch (error) {
+          rethrowAsUserFacing(
+            error,
+            "Login failed. Check your email and password."
+          );
+        }
       },
       [loginMutation, tokenStore, onLogin]
     );
 
     const signup = useCallback(
       async (name: string, email: string, password: string) => {
-        const result = await signupMutation({ name, email, password });
-        await normalizeVoid(() => tokenStore.setToken(result.token));
-        setUser({ userId: result.userId, name: result.name, email });
-        onLogin?.();
+        try {
+          const result = await signupMutation({ name, email, password });
+          await normalizeVoid(() => tokenStore.setToken(result.token));
+          setToken(result.token);
+          setUser({ userId: result.userId, name: result.name, email });
+          onLogin?.();
+        } catch (error) {
+          rethrowAsUserFacing(error, "Signup failed. Please try again.");
+        }
       },
       [signupMutation, tokenStore, onLogin]
     );
@@ -126,32 +177,44 @@ export function createAuthProvider(
         await logoutMutation({ token });
       }
       await normalizeVoid(() => tokenStore.removeToken());
+      setToken(null);
       setUser(null);
       onLogout?.();
     }, [logoutMutation, tokenStore, onLogout]);
 
     const loginWithGoogle = useCallback(
       async (idToken: string) => {
-        const result = await loginWithGoogleMutation({ idToken });
-        await normalizeVoid(() => tokenStore.setToken(result.token));
-        setUser({ userId: result.userId, name: result.name, email: "" });
-        onLogin?.();
+        try {
+          const result = await loginWithGoogleMutation({ idToken });
+          await normalizeVoid(() => tokenStore.setToken(result.token));
+          setToken(result.token);
+          setUser({ userId: result.userId, name: result.name, email: "" });
+          onLogin?.();
+        } catch (error) {
+          rethrowAsUserFacing(error, "Google sign-in failed.");
+        }
       },
       [loginWithGoogleMutation, tokenStore, onLogin]
     );
 
     const loginWithApple = useCallback(
       async (args: { identityToken: string; email?: string; name?: string }) => {
-        const result = await loginWithAppleMutation(args);
-        await normalizeVoid(() => tokenStore.setToken(result.token));
-        setUser({ userId: result.userId, name: result.name, email: "" });
-        onLogin?.();
+        try {
+          const result = await loginWithAppleMutation(args);
+          await normalizeVoid(() => tokenStore.setToken(result.token));
+          setToken(result.token);
+          setUser({ userId: result.userId, name: result.name, email: "" });
+          onLogin?.();
+        } catch (error) {
+          rethrowAsUserFacing(error, "Apple sign-in failed.");
+        }
       },
       [loginWithAppleMutation, tokenStore, onLogin]
     );
 
     const value: AuthContextValue = {
       user,
+      token,
       loading,
       login,
       signup,

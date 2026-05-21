@@ -18,4 +18,11 @@ export default defineSchema({
     token: v.string(),
     expiresAt: v.number(),
   }).index('by_token', ['token']),
+
+  tasks: defineTable({
+    userId: v.id('users'),
+    title: v.string(),
+    done: v.boolean(),
+    createdAt: v.number(),
+  }).index('by_user', ['userId']),
 });
