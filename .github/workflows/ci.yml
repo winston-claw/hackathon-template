@@ -32,3 +32,4 @@ jobs:
         run: npm run build:web
         env:
           NEXT_PUBLIC_CONVEX_URL: https://placeholder.convex.cloud
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder_for_ci_build

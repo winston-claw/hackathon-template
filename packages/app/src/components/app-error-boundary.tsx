@@ -20,7 +20,8 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('AppErrorBoundary caught an error:', error, info);
+    // console.error triggers the Next.js dev overlay; warn keeps real errors visible in UI.
+    console.warn('AppErrorBoundary caught an error:', error.message, info.componentStack);
   }
 
   handleRetry = () => {
@@ -37,6 +38,11 @@ export class AppErrorBoundary extends Component<Props, State> {
           <Text className="text-typography-500 mb-6 text-center">
             {getUserFacingErrorMessage(this.state.error)}
           </Text>
+          {process.env.NODE_ENV === 'development' ? (
+            <Text className="text-typography-400 mb-6 text-center text-xs">
+              {this.state.error.message}
+            </Text>
+          ) : null}
           <Button action="primary" size="md" onPress={this.handleRetry}>
             <ButtonText>Try again</ButtonText>
           </Button>

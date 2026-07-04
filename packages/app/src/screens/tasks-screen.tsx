@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ScrollView, Platform } from "react-native";
+import { Platform } from "react-native";
+import { ScrollView } from "@app-template/ui";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "solito/navigation";
 import {
@@ -21,6 +22,8 @@ import { TaskCheckbox } from "../components/task-checkbox";
 import { useAuth } from "../auth";
 import { getUserFacingErrorMessage } from "../auth/errors";
 import { api } from "../db/api";
+import { AnalyticsEvent } from "../analytics/events";
+import { trackProductEvent } from "../analytics/track-product-event";
 
 export function TasksScreen() {
   return (
@@ -31,10 +34,10 @@ export function TasksScreen() {
 }
 
 function TasksContent() {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const toast = useToast();
-  const tasks = useQuery(api.tasks.list, token ? { token } : "skip");
+  const tasks = useQuery(api.tasks.list, user ? {} : "skip");
   const createTask = useMutation(api.tasks.create);
   const toggleTask = useMutation(api.tasks.toggle);
   const removeTask = useMutation(api.tasks.remove);
@@ -44,10 +47,13 @@ function TasksContent() {
   const [creating, setCreating] = useState(false);
 
   const handleCreate = async () => {
-    if (!token || !title.trim()) return;
+    if (!user || !title.trim()) return;
     setCreating(true);
     try {
-      await createTask({ token, title: title.trim() });
+      await createTask({ title: title.trim() });
+      trackProductEvent(AnalyticsEvent.TASK_CREATED, "tasks", {
+        source: "tasks_screen",
+      });
       setTitle("");
       toast.show({
         placement: "top",
@@ -74,17 +80,20 @@ function TasksContent() {
   };
 
   const handleToggle = async (taskId: string) => {
-    if (!token) return;
+    if (!user) return;
     setPendingId(taskId);
     try {
-      await toggleTask({ token, taskId: taskId as never });
+      await toggleTask({ taskId: taskId as never });
+      trackProductEvent(AnalyticsEvent.TASK_TOGGLED, "tasks", {
+        source: "tasks_screen",
+      });
     } finally {
       setPendingId(null);
     }
   };
 
   const handleDelete = async (taskId: string, taskTitle: string) => {
-    if (!token) return;
+    if (!user) return;
     const confirmed =
       Platform.OS === "web"
         ? globalThis.confirm?.(`Delete "${taskTitle}"?`) ?? true
@@ -93,7 +102,7 @@ function TasksContent() {
 
     setPendingId(taskId);
     try {
-      await removeTask({ token, taskId: taskId as never });
+      await removeTask({ taskId: taskId as never });
       toast.show({
         placement: "top",
         render: ({ id }) => (

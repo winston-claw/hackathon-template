@@ -8,7 +8,9 @@ A production-ready universal app template with Next.js 15, Expo (React Native), 
 
 - **Next.js 15** — App Router, TypeScript, react-native-web for shared screens
 - **Expo 54** — React Native app with Expo Router (iOS, Android); dev builds via `expo-dev-client` (not Expo Go)
-- **Convex** — Real-time database + auth (signup, login, sessions, Google/Apple OAuth)
+- **Clerk** — Authentication (email/password, OAuth) with Convex JWT integration
+- **Convex** — Real-time database, notification outbox, Resend email, push notifications
+- **PostHog + Sentry** — Optional analytics and error monitoring (no-op without env vars)
 - **Gluestack UI v3** — Universal component library in `@app-template/ui` (NativeWind/Tailwind)
 - **Shared packages** — `@app-template/ui` (design system) and `@app-template/app` (screens, auth, db)
 - **Turborepo** — Cached builds and parallel dev tasks
@@ -62,7 +64,10 @@ After init, set your Apple Team ID in `apps/mobile/app.json` if building for iOS
 Add Google/Apple OAuth later with:
 
 ```bash
-npm run auth
+# Configure Clerk (see apps/web/.env.example and apps/mobile/.env.example)
+# 1. Create app at https://dashboard.clerk.com
+# 2. Enable Google/Apple in Clerk dashboard
+# 3. Set CLERK_JWT_ISSUER_DOMAIN on Convex deployment
 ```
 
 ### Manual setup (alternative)

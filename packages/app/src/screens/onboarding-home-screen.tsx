@@ -3,7 +3,6 @@
 import { useRef, useState, useCallback } from "react";
 import {
   Dimensions,
-  ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
@@ -13,6 +12,7 @@ import {
   Box,
   Button,
   ButtonText,
+  ScrollView,
   Text,
 } from "@app-template/ui";
 import { Screen } from "../components/screen";

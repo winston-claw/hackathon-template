@@ -8,6 +8,8 @@ node_modules/
 out/
 dist/
 build/
+.turbo/
+*.tsbuildinfo
 
 # Environment
 .env
@@ -15,6 +17,7 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.sentry-build-plugin
 
 # Debug
 npm-debug.log*
@@ -41,3 +44,9 @@ convex/_generated/
 *.log
 .vercel
 .env*.local
+
+# Apple / EAS credentials — never commit private keys or certs
+*.p8
+*.p12
+*.mobileprovision
+credentials/

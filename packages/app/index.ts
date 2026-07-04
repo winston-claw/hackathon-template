@@ -4,33 +4,49 @@ export { DashboardScreen } from "./src/screens/dashboard-screen";
 export { TasksScreen } from "./src/screens/tasks-screen";
 export { OnboardingHomeScreen } from "./src/screens/onboarding-home-screen";
 export { MarketingHomeScreen } from "./src/screens/marketing-home-screen";
+export { AdminScreen } from "./src/screens/admin-screen";
+export { AdminEmailTestScreen } from "./src/screens/admin-email-test-screen";
+export { AdminNotificationTestScreen } from "./src/screens/admin-notification-test-screen";
+export { AdminNotificationDeliveriesScreen } from "./src/screens/admin-notification-deliveries-screen";
+export { AdminSentryTestScreen } from "./src/screens/admin-sentry-test-screen";
+export { AdminPostHogTestScreen } from "./src/screens/admin-posthog-test-screen";
+export { ForceUpgradeScreen } from "./src/screens/force-upgrade-screen";
 
 export { AppErrorBoundary } from "./src/components/app-error-boundary";
 export { AuthGuard } from "./src/components/auth-guard";
+export { AdminGuard } from "./src/components/admin-guard";
+export { ForceUpgradeGate } from "./src/components/force-upgrade-gate";
+export { OtaUpdateRuntime } from "./src/components/ota-update-runtime";
+export { PostHogRuntime } from "./src/analytics/posthog-runtime";
+export { PushNotificationsRuntime } from "./src/notifications/push-notifications-runtime";
 
-export {
-  createAuthProvider,
-  useAuth,
-  createLocalStorageTokenStore,
-  createSecureStoreTokenStore,
-} from "./src/auth";
+export { AuthProvider, useAuth } from "./src/auth";
+export { useAuthBootstrapReady } from "./src/auth/use-auth-bootstrap-ready";
+export { getClerkAllowedRedirectOrigins } from "./src/auth/clerk/clerk-redirect-origins";
 export type {
   User,
-  TokenStore,
-  AuthApi,
-  AuthProviderProps,
+  AuthContextType,
   AuthProviderOptions,
-  OAuthHandlers,
+  AuthProviderProps,
+  AuthContextValue,
 } from "./src/auth";
-export { OAuthProvider, useOAuth, useOAuthActions } from "./src/auth";
+
+export { trackProductEvent } from "./src/analytics/track-product-event";
+export { AnalyticsEvent } from "./src/analytics/events";
+export type { AnalyticsEventName, AnalyticsCategory } from "./src/analytics/events";
+export { useAnalytics } from "./src/analytics/use-analytics";
+
 export {
   getUserFacingErrorMessage,
   EXPECTED_AUTH_CONVEX_LOG,
 } from "./src/errors/get-user-facing-message";
-/** @deprecated Use getUserFacingErrorMessage */
 export { getUserFacingErrorMessage as getAuthErrorMessage } from "./src/errors/get-user-facing-message";
 export { APP_ERROR_MESSAGES } from "./src/errors/messages";
 export { AppErrorCode, type AppErrorCodeType } from "../../convex/errors";
+export { handleCaughtError } from "./src/observability/handle-caught-error";
+export { shouldReportError } from "./src/observability/should-report-error";
 
 export { createConvexClient } from "./src/db";
 export { api, internal } from "./src/db/api";
+
+export { usePushNotifications } from "./src/notifications/use-push-notifications";

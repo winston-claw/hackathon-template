@@ -20,8 +20,12 @@ export function AuthScreen({ children }: AuthScreenProps) {
         style={{ flex: 1, width: '100%' }}
       >
         <ScrollView
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+          {...(Platform.OS === 'web'
+            ? {}
+            : {
+                keyboardShouldPersistTaps: 'handled' as const,
+                showsVerticalScrollIndicator: false,
+              })}
           contentContainerStyle={{
             flexDirection: 'column',
             alignItems: 'stretch',

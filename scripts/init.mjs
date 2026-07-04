@@ -5,11 +5,10 @@
  * Requires CONVEX_TOKEN and VERCEL_TOKEN in the environment.
  *
  * Usage:
- *   node scripts/init.mjs        create projects, rename, deploy (email/password only)
- *   node scripts/init.mjs --auth  add Google + Apple OAuth (run after init)
+ *   node scripts/init.mjs        create projects, rename, deploy
  *   node scripts/init.mjs --deploy   deploy only (Convex + Vercel)
  *
- * Or: npm run init   /   npm run auth   /   npm run deploy
+ * Or: npm run init   /   npm run deploy
  */
 
 import { createInterface } from "readline";
@@ -469,12 +468,12 @@ async function main() {
     return;
   }
   if (AUTH_ONLY) {
-    await runAuthOnly();
+    console.log("OAuth init was removed — this template uses Clerk. See README for setup.");
     rl.close();
     return;
   }
 
-  console.log("Project init – Convex + Vercel + template renames (email/password only)\n");
+  console.log("Project init – Convex + Vercel + template renames\n");
 
   const convexToken = process.env.CONVEX_TOKEN;
   const vercelToken = process.env.VERCEL_TOKEN;
@@ -601,10 +600,7 @@ async function main() {
     path.join(ROOT, "apps/mobile/app/index.tsx"),
     path.join(ROOT, "README.md"),
     path.join(ROOT, "apps/web/lib/convex-client.ts"),
-    path.join(ROOT, "apps/web/lib/auth.tsx"),
     path.join(ROOT, "apps/mobile/lib/convex.ts"),
-    path.join(ROOT, "apps/mobile/lib/auth.tsx"),
-    path.join(ROOT, "apps/web/app/api/auth/callback/apple/route.ts"),
   ];
 
   for (const filePath of filesToReplace) {
@@ -767,10 +763,12 @@ async function main() {
   }
 
   console.log("\nDone. Next steps:");
-  console.log("  1. Run: npm run dev  (web)");
-  console.log("  2. Mobile: build a dev client first — cd apps/mobile && npx expo run:ios (or eas build --profile development)");
-  console.log("     Then: npm run dev:mobile");
-  console.log("  3. To add Google/Apple OAuth: npm run auth");
+  console.log("  1. Create a Clerk app at https://dashboard.clerk.com");
+  console.log("  2. Add NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY + CLERK_SECRET_KEY to apps/web/.env.local");
+  console.log("  3. Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to apps/mobile/.env");
+  console.log("  4. Set CLERK_JWT_ISSUER_DOMAIN on your Convex deployment (Clerk → JWT templates → Convex)");
+  console.log("  5. Run: npm run dev:all");
+  console.log("  6. Mobile: cd apps/mobile && npx expo run:ios (first time only)");
   rl.close();
 }
 

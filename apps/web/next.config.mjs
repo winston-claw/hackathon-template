@@ -1,7 +1,18 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import { withGluestackUI } from '@gluestack/ui-next-adapter';
+import { withSentryConfig } from '@sentry/nextjs';
+
+const appDir = path.dirname(fileURLToPath(import.meta.url));
+const monorepoRoot = path.join(appDir, '../..');
+const appVersion = JSON.parse(
+  readFileSync(path.join(appDir, 'package.json'), 'utf8'),
+).version;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: monorepoRoot,
   transpilePackages: [
     '@app-template/app',
     '@app-template/ui',
@@ -15,6 +26,9 @@ const nextConfig = {
   ],
   env: {
     NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL || 'http://localhost:3000',
+    NEXT_PUBLIC_APP_VERSION: appVersion,
+    NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV,
+    NEXT_PUBLIC_VERCEL_URL: process.env.VERCEL_URL,
   },
   experimental: {
     serverActions: {
@@ -25,6 +39,7 @@ const nextConfig = {
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       'react-native$': 'react-native-web',
+      'convex/browser': path.join(monorepoRoot, 'node_modules/convex/dist/esm/browser/index.js'),
     };
     config.resolve.extensions = [
       '.web.js',
@@ -37,4 +52,11 @@ const nextConfig = {
   },
 };
 
-export default withGluestackUI(nextConfig);
+export default withSentryConfig(withGluestackUI(nextConfig), {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  widenClientFileUpload: true,
+  tunnelRoute: '/monitoring',
+  silent: !process.env.CI,
+});

@@ -30,7 +30,7 @@ app-template/
 - **Contains:**
   - `src/screens/` — full screen components (login, signup, dashboard, tasks, home)
   - `src/components/` — `AuthGuard`, `AppErrorBoundary`, `Screen`, `AuthScreen`
-  - `src/auth/` — `createAuthProvider`, `useAuth`, token adapters (localStorage / SecureStore)
+  - `src/auth/` — Clerk hooks, `AuthProvider`, `useAuth`
   - `src/db/` — `createConvexClient`, re-export of `api` from `convex/_generated`
 - **May depend on:** `@app-template/ui`, `solito`, `convex`, `react-native`
 - **Screens must:** compose `@app-template/ui` components; use `useAuth` from `../auth`; use Solito for navigation (`Link`, `useRouter`, `TextLink`); wrap protected screens in `AuthGuard`; wrap full-screen layouts in `Screen` (or `AuthScreen` for auth flows) for safe-area padding
@@ -41,8 +41,8 @@ app-template/
 - **Routes are thin re-exports.** Do not put screen UI or business logic here.
 - **Both apps wrap the tree with `UIProvider`** from `@app-template/ui` (inside `providers.tsx` / `_layout.tsx`)
 - **Platform-only code stays in apps:**
-  - Web: OAuth redirect pages (`/auth/google`, `/auth/apple`), API routes, `providers.tsx`, `lib/auth.tsx`, `next.config.mjs` (Gluestack Next adapter)
-  - Mobile: `app/auth/callback.tsx`, `_layout.tsx`, `lib/auth.tsx`, `babel.config.js` (`nativewind/babel`), `metro.config.js` (NativeWind wrapper). Uses **expo-dev-client** — not Expo Go.
+  - Web: `providers.tsx`, `convex-client-provider.tsx`, `middleware.ts` (Clerk), Sentry/PostHog init
+  - Mobile: `_layout.tsx` (Clerk + Convex), `babel.config.js`, `metro.config.js`. Uses **expo-dev-client**
 - **Web shared screens:** `'use client'` required on pages that re-export from `@app-template/app` (they use React Native via `react-native-web`)
 
 ## Adding a new feature
@@ -78,9 +78,16 @@ app-template/
 
 ### New auth behavior
 
-1. Update `convex/auth.ts` for backend
-2. Update `packages/app/src/auth/createAuth.tsx` if client context changes
-3. Keep token storage adapters in `packages/app/src/auth/adapters/`
+1. Configure Clerk dashboard + `CLERK_JWT_ISSUER_DOMAIN` on Convex
+2. Update `convex/auth.ts` for user mapping if needed
+3. Update `packages/app/src/auth/createAuth.tsx` for client context changes
+
+### Optional integrations
+
+- **Email:** Resend via `@convex-dev/resend` — set `RESEND_API_KEY` on Convex, run `npm run env:sync:convex-email`
+- **Analytics:** PostHog — set `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` / `EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN`
+- **Errors:** Sentry — set `NEXT_PUBLIC_SENTRY_DSN` / `EXPO_PUBLIC_SENTRY_DSN`
+- **Admin:** set `ADMIN_EMAILS` on Convex deployment (comma-separated)
 
 ### User-facing errors (required)
 
@@ -119,7 +126,8 @@ catch (error) {
 | `npm run convex:dev` | Convex dev + codegen |
 | `npm run build:web` | Production web build |
 | `npm run typecheck` | Turborepo typecheck across workspaces |
-| `npm run init` | New project setup (Convex + Vercel) |
+| `npm run init` | New project setup (Convex + Vercel + Clerk checklist) |
+| `npm run env:sync:convex-email` | Push Resend env vars to Convex |
 
 ## Environment variables
 

@@ -4,7 +4,7 @@ import { APP_ERROR_MESSAGES } from "./messages";
 /** Pattern for expected auth failures logged by the Convex client. */
 export const EXPECTED_AUTH_CONVEX_LOG = /\[CONVEX [MA]\(auth:/;
 
-function parseAppErrorCode(error: unknown): AppErrorCodeType | null {
+export function parseAppErrorCode(error: unknown): AppErrorCodeType | null {
   if (!error || typeof error !== "object" || !("data" in error)) return null;
 
   const data = (error as { data: unknown }).data;

@@ -3,41 +3,30 @@
 import {
   createContext,
   useContext,
-  useState,
-  useEffect,
   useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
   type ReactNode,
 } from "react";
-import { useConvex, useMutation } from "convex/react";
-import type { FunctionReference } from "convex/server";
-import type { TokenStore, AuthProviderOptions, User } from "./types";
-import { getUserFacingErrorMessage } from "../errors/get-user-facing-message";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { api } from "../db/api";
+import { clerkUserDisplayName } from "./clerk/clerk-display-name";
+import { useUser } from "./clerk/use-clerk-user";
+import {
+  resolveAuthUser,
+  shouldClearEstablishedSession,
+} from "./resolve-auth-user";
+import { SentryUserSync } from "../observability/sentry-user-sync";
+import type { AuthProviderOptions, User } from "./types";
 
-function rethrowAsUserFacing(error: unknown, fallback: string): never {
-  throw new Error(getUserFacingErrorMessage(error, fallback));
-}
-
-/** API shape expected by auth: Convex auth functions */
-export interface AuthApi {
-  auth: {
-    login: FunctionReference<"mutation">;
-    signup: FunctionReference<"mutation">;
-    logout: FunctionReference<"mutation">;
-    loginWithGoogle: FunctionReference<"mutation">;
-    loginWithApple: FunctionReference<"mutation">;
-    me: FunctionReference<"query">;
-  };
-}
-
-type AuthContextValue = {
+export type AuthContextValue = {
   user: User | null;
-  token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
+  needsOnboarding: boolean;
+  establishSession: (user: User) => void;
   logout: () => Promise<void>;
-  loginWithGoogle?: (idToken: string) => Promise<void>;
-  loginWithApple?: (args: { identityToken: string; email?: string; name?: string }) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | undefined>(
@@ -52,181 +41,109 @@ export function useAuth(): AuthContextValue {
   return context;
 }
 
-function normalizeToken(
-  value: string | null | Promise<string | null>
-): Promise<string | null> {
-  if (value === null || typeof value === "string")
-    return Promise.resolve(value);
-  return value;
-}
-
-function normalizeVoid(fn: () => void | Promise<void>): Promise<void> {
-  const result = fn();
-  return result instanceof Promise ? result : Promise.resolve();
-}
-
 export interface AuthProviderProps {
   children: ReactNode;
-  /** Override default onLogin (e.g. router.push('/dashboard')) */
-  onLogin?: () => void;
-  /** Override default onLogout (e.g. router.push('/')) */
+  signOut: () => Promise<void> | void;
   onLogout?: () => void;
 }
 
-export function createAuthProvider(
-  api: AuthApi,
-  tokenStore: TokenStore,
-  defaultOptions: AuthProviderOptions = {}
-) {
-  const { onLogin: defaultOnLogin, onLogout: defaultOnLogout } =
-    defaultOptions;
+function AuthProfileSync() {
+  const { isAuthenticated } = useConvexAuth();
+  const { user: clerkUser, isLoaded: clerkUserLoaded } = useUser();
+  const syncAuthProfile = useMutation(api.auth.syncAuthProfile);
+  const ensureUser = useMutation(api.auth.ensureUser);
+  const lastSyncedName = useRef<string | null>(null);
+  const ensuredRef = useRef(false);
 
-  function AuthProviderInner({
-    children,
-    onLogin = defaultOnLogin,
-    onLogout = defaultOnLogout,
-  }: AuthProviderProps) {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!isAuthenticated || !clerkUserLoaded) return;
 
-    const convex = useConvex();
-    const loginMutation = useMutation(api.auth.login);
-    const signupMutation = useMutation(api.auth.signup);
-    const logoutMutation = useMutation(api.auth.logout);
-    const loginWithGoogleMutation = useMutation(api.auth.loginWithGoogle);
-    const loginWithAppleMutation = useMutation(api.auth.loginWithApple);
+    const displayName = clerkUserDisplayName(clerkUser);
 
-    useEffect(() => {
-      let cancelled = false;
+    if (!ensuredRef.current) {
+      ensuredRef.current = true;
+      void ensureUser({ clerkDisplayName: displayName ?? undefined });
+    }
 
-      async function restoreSession() {
-        const storedToken = await normalizeToken(tokenStore.getToken());
-        if (cancelled) return;
+    if (!displayName || displayName === lastSyncedName.current) return;
 
-        if (!storedToken) {
-          setLoading(false);
-          return;
-        }
+    lastSyncedName.current = displayName;
+    void syncAuthProfile({ clerkDisplayName: displayName });
+  }, [isAuthenticated, clerkUserLoaded, clerkUser, syncAuthProfile, ensureUser]);
 
-        try {
-          const me = await convex.query(api.auth.me, { token: storedToken });
-          if (cancelled) return;
+  useEffect(() => {
+    if (!isAuthenticated) {
+      ensuredRef.current = false;
+    }
+  }, [isAuthenticated]);
 
-          if (me) {
-            setToken(storedToken);
-            setUser(me);
-          } else {
-            await normalizeVoid(() => tokenStore.removeToken());
-            setToken(null);
-            setUser(null);
-          }
-        } catch {
-          if (!cancelled) {
-            await normalizeVoid(() => tokenStore.removeToken());
-            setToken(null);
-            setUser(null);
-          }
-        } finally {
-          if (!cancelled) setLoading(false);
-        }
-      }
-
-      void restoreSession();
-      return () => {
-        cancelled = true;
-      };
-    }, [convex]);
-
-    const login = useCallback(
-      async (email: string, password: string) => {
-        try {
-          const result = await loginMutation({ email, password });
-          await normalizeVoid(() => tokenStore.setToken(result.token));
-          setToken(result.token);
-          setUser({ userId: result.userId, name: result.name, email });
-          onLogin?.();
-        } catch (error) {
-          rethrowAsUserFacing(
-            error,
-            "Login failed. Check your email and password."
-          );
-        }
-      },
-      [loginMutation, tokenStore, onLogin]
-    );
-
-    const signup = useCallback(
-      async (name: string, email: string, password: string) => {
-        try {
-          const result = await signupMutation({ name, email, password });
-          await normalizeVoid(() => tokenStore.setToken(result.token));
-          setToken(result.token);
-          setUser({ userId: result.userId, name: result.name, email });
-          onLogin?.();
-        } catch (error) {
-          rethrowAsUserFacing(error, "Signup failed. Please try again.");
-        }
-      },
-      [signupMutation, tokenStore, onLogin]
-    );
-
-    const logout = useCallback(async () => {
-      const token = await normalizeToken(tokenStore.getToken());
-      if (token) {
-        await logoutMutation({ token });
-      }
-      await normalizeVoid(() => tokenStore.removeToken());
-      setToken(null);
-      setUser(null);
-      onLogout?.();
-    }, [logoutMutation, tokenStore, onLogout]);
-
-    const loginWithGoogle = useCallback(
-      async (idToken: string) => {
-        try {
-          const result = await loginWithGoogleMutation({ idToken });
-          await normalizeVoid(() => tokenStore.setToken(result.token));
-          setToken(result.token);
-          setUser({ userId: result.userId, name: result.name, email: "" });
-          onLogin?.();
-        } catch (error) {
-          rethrowAsUserFacing(error, "Google sign-in failed.");
-        }
-      },
-      [loginWithGoogleMutation, tokenStore, onLogin]
-    );
-
-    const loginWithApple = useCallback(
-      async (args: { identityToken: string; email?: string; name?: string }) => {
-        try {
-          const result = await loginWithAppleMutation(args);
-          await normalizeVoid(() => tokenStore.setToken(result.token));
-          setToken(result.token);
-          setUser({ userId: result.userId, name: result.name, email: "" });
-          onLogin?.();
-        } catch (error) {
-          rethrowAsUserFacing(error, "Apple sign-in failed.");
-        }
-      },
-      [loginWithAppleMutation, tokenStore, onLogin]
-    );
-
-    const value: AuthContextValue = {
-      user,
-      token,
-      loading,
-      login,
-      signup,
-      logout,
-      loginWithGoogle,
-      loginWithApple,
-    };
-
-    return (
-      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-    );
-  }
-
-  return { AuthProvider: AuthProviderInner, useAuth };
+  return null;
 }
+
+export function AuthProvider({
+  children,
+  signOut,
+  onLogout,
+}: AuthProviderProps) {
+  const { isLoading: convexAuthLoading, isAuthenticated } = useConvexAuth();
+  const currentUser = useQuery(
+    api.auth.currentUser,
+    isAuthenticated ? {} : "skip"
+  );
+  const [establishedUser, setEstablishedUser] = useState<User | null>(null);
+
+  const queryResolved = currentUser !== undefined;
+
+  useEffect(() => {
+    if (shouldClearEstablishedSession(currentUser, establishedUser)) {
+      setEstablishedUser(null);
+    }
+  }, [currentUser, establishedUser]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setEstablishedUser(null);
+    }
+  }, [isAuthenticated]);
+
+  const establishSession = useCallback((user: User) => {
+    setEstablishedUser(user);
+  }, []);
+
+  const user = isAuthenticated
+    ? resolveAuthUser(currentUser, establishedUser)
+    : null;
+
+  const loading =
+    convexAuthLoading ||
+    (isAuthenticated && !queryResolved && establishedUser === null);
+
+  const needsOnboarding = isAuthenticated && !loading && user === null;
+
+  const logout = useCallback(async () => {
+    setEstablishedUser(null);
+    await signOut();
+    onLogout?.();
+  }, [signOut, onLogout]);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      loading,
+      needsOnboarding,
+      establishSession,
+      logout,
+    }),
+    [user, loading, needsOnboarding, establishSession, logout]
+  );
+
+  return (
+    <AuthContext.Provider value={value}>
+      <AuthProfileSync />
+      <SentryUserSync />
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export type { AuthProviderOptions };

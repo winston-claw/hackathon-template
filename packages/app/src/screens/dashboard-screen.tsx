@@ -1,6 +1,6 @@
 "use client";
 
-import { ScrollView } from "react-native";
+import { ScrollView } from "@app-template/ui";
 import { useRouter } from "solito/navigation";
 import {
   Box,
@@ -53,7 +53,7 @@ function DashboardContent() {
       </Box>
 
       <ScrollView contentContainerStyle={{ padding: 24, maxWidth: 1120, width: "100%", alignSelf: "center" }}>
-        <Box className="mb-8">
+        <Box className="mb-8 flex-col">
           <Text className="text-2xl font-bold text-typography-900 mb-2">
             Welcome back{user.name ? `, ${user.name}` : ""}
           </Text>
@@ -67,7 +67,7 @@ function DashboardContent() {
           {STATS.map((stat) => (
             <Box
               key={stat.label}
-              className="bg-background-0 p-5 rounded-2xl border border-outline-200 min-w-[200px] grow basis-[45%]"
+              className="flex-col bg-background-0 p-5 rounded-2xl border border-outline-200 min-w-[200px] grow basis-[45%]"
             >
               <Text className="text-sm text-typography-500 mb-2">{stat.label}</Text>
               <Box className="flex-row items-baseline gap-2">
@@ -78,18 +78,17 @@ function DashboardContent() {
           ))}
         </Box>
 
-        <Box className="bg-background-0 p-6 rounded-2xl border border-outline-200">
+        <Box className="flex-col bg-background-0 p-6 rounded-2xl border border-outline-200">
           <Text className="text-lg font-semibold text-typography-900 mb-4">Quick Actions</Text>
           <Box className="flex-row flex-wrap gap-3">
-            <Button action="primary" size="md" onPress={() => router.push("/tasks")}>
+            <Button action="primary" variant="outline" size="md" onPress={() => router.push("/tasks")}>
               <ButtonText>View Tasks</ButtonText>
             </Button>
-            <Button action="primary" variant="outline" size="md">
-              <ButtonText>View Analytics</ButtonText>
-            </Button>
-            <Button action="primary" variant="outline" size="md">
-              <ButtonText>Invite Team Member</ButtonText>
-            </Button>
+            {user.isAdmin ? (
+              <Button action="primary" variant="outline" size="md" onPress={() => router.push("/admin")}>
+                <ButtonText>Admin</ButtonText>
+              </Button>
+            ) : null}
           </Box>
         </Box>
       </ScrollView>

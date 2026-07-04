@@ -1,55 +1,47 @@
-import { query, mutation } from './_generated/server';
-import { v } from 'convex/values';
-import type { MutationCtx, QueryCtx } from './_generated/server';
-import type { Id } from './_generated/dataModel';
-import { AppErrorCode, appError } from './errors';
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { AppErrorCode, appError } from "./errors";
+import { getUserForIdentity } from "./auth";
 
-async function getUserIdFromToken(
-  ctx: QueryCtx | MutationCtx,
-  token: string
-): Promise<Id<'users'> | null> {
-  const session = await ctx.db
-    .query('sessions')
-    .withIndex('by_token', (q) => q.eq('token', token))
-    .first();
-
-  if (!session || session.expiresAt < Date.now()) {
-    return null;
+async function requireUserId(
+  ctx: QueryCtx | MutationCtx
+): Promise<Id<"users">> {
+  const user = await getUserForIdentity(ctx);
+  if (!user) {
+    appError(AppErrorCode.UNAUTHORIZED);
   }
-
-  return session.userId;
+  return user._id;
 }
 
 export const list = query({
-  args: { token: v.string() },
-  handler: async (ctx, args) => {
-    const userId = await getUserIdFromToken(ctx, args.token);
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getUserForIdentity(ctx);
     if (!userId) {
       return [];
     }
 
     return await ctx.db
-      .query('tasks')
-      .withIndex('by_user', (q) => q.eq('userId', userId))
-      .order('desc')
+      .query("tasks")
+      .withIndex("by_user", (q) => q.eq("userId", userId._id))
+      .order("desc")
       .collect();
   },
 });
 
 export const create = mutation({
-  args: { token: v.string(), title: v.string() },
+  args: { title: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getUserIdFromToken(ctx, args.token);
-    if (!userId) {
-      appError(AppErrorCode.UNAUTHORIZED);
-    }
+    const userId = await requireUserId(ctx);
 
     const title = args.title.trim();
     if (!title) {
       appError(AppErrorCode.TASK_TITLE_REQUIRED);
     }
 
-    return await ctx.db.insert('tasks', {
+    return await ctx.db.insert("tasks", {
       userId,
       title,
       done: false,
@@ -59,12 +51,9 @@ export const create = mutation({
 });
 
 export const toggle = mutation({
-  args: { token: v.string(), taskId: v.id('tasks') },
+  args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    const userId = await getUserIdFromToken(ctx, args.token);
-    if (!userId) {
-      appError(AppErrorCode.UNAUTHORIZED);
-    }
+    const userId = await requireUserId(ctx);
 
     const task = await ctx.db.get(args.taskId);
     if (!task || task.userId !== userId) {
@@ -77,12 +66,9 @@ export const toggle = mutation({
 });
 
 export const remove = mutation({
-  args: { token: v.string(), taskId: v.id('tasks') },
+  args: { taskId: v.id("tasks") },
   handler: async (ctx, args) => {
-    const userId = await getUserIdFromToken(ctx, args.token);
-    if (!userId) {
-      appError(AppErrorCode.UNAUTHORIZED);
-    }
+    const userId = await requireUserId(ctx);
 
     const task = await ctx.db.get(args.taskId);
     if (!task || task.userId !== userId) {

@@ -10,16 +10,16 @@ type AuthGuardProps = {
 };
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, needsOnboarding } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !needsOnboarding && !user) {
       router.replace('/login');
     }
-  }, [user, loading, router]);
+  }, [user, loading, needsOnboarding, router]);
 
-  if (loading) {
+  if (loading || needsOnboarding) {
     return (
       <Box className="flex-1 flex-col items-center justify-center bg-background-50">
         <Spinner size="large" />
