@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ViewProps } from 'react-native';
+import { View, ViewProps } from '../../../rn-primitives';
 
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { boxStyle } from './styles';

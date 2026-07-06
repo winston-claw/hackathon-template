@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { useRouter } from "solito/navigation";
-import { Box } from "./auth-ui";
+import { Box } from "@app-template/ui";
 import { api } from "../db/api";
 import { AuthGuard } from "./auth-guard";
 import { LoadingSpinner } from "./loading-spinner";
@@ -24,7 +24,7 @@ function AdminGate({ children }: AdminGuardProps) {
 
   if (page === undefined) {
     return (
-      <Box className="flex-1 flex-col items-center justify-center bg-brutal-bg">
+      <Box className="flex-1 flex-col items-center justify-center bg-background">
         <LoadingSpinner />
       </Box>
     );

@@ -25,26 +25,26 @@ function AdminContent() {
   const router = useRouter();
 
   return (
-    <Screen className="flex-1 flex-col bg-background-50">
-      <Box className="bg-background-0 border-b border-outline-200 px-6 py-4">
+    <Screen className="flex-1 flex-col bg-background">
+      <Box className="bg-card border-b border-border px-6 py-4">
         <Heading size="lg">Admin tools</Heading>
-        <Text className="text-typography-500 mt-1">
+        <Text className="text-muted-foreground mt-1">
           Internal tools for testing integrations.
         </Text>
       </Box>
 
-      <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>
+      <ScrollView className="flex-1 w-full">
+        <Box className="flex-col gap-4 p-6">
         {ADMIN_TOOLS.map((tool) => (
           <Box
             key={tool.key}
-            className="bg-background-0 border border-outline-200 rounded-2xl p-4 gap-2"
+            className="bg-card border border-border rounded-2xl p-4 gap-2"
           >
-            <Text className="text-base font-semibold text-typography-900">
+            <Text className="text-base font-semibold text-foreground">
               {tool.label}
             </Text>
-            <Text className="text-typography-500">{tool.description}</Text>
+            <Text className="text-muted-foreground">{tool.description}</Text>
             <Button
-              action="primary"
               variant="outline"
               size="sm"
               className="self-start mt-2"
@@ -54,6 +54,7 @@ function AdminContent() {
             </Button>
           </Box>
         ))}
+        </Box>
       </ScrollView>
     </Screen>
   );

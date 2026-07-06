@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { config } from './config';
-import { View, ViewProps } from 'react-native';
+import { View, ViewProps } from '../../../rn-primitives';
 import { OverlayProvider } from '@gluestack-ui/core/overlay/creator';
 import { ToastProvider } from '@gluestack-ui/core/toast/creator';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '../../../nativewind-compat';
 
 export type ModeType = 'light' | 'dark' | 'system';
 
@@ -19,7 +19,9 @@ export function GluestackUIProvider({
 
   useEffect(() => {
     if (mode === 'system') {
-      setColorScheme('system');
+      setColorScheme(null);
+    } else {
+      setColorScheme(mode);
     }
   }, [mode, setColorScheme]);
 

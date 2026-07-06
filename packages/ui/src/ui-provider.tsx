@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View } from './rn-primitives';
 import { GluestackUIProvider as NativeGluestackUIProvider } from './components/ui/gluestack-ui-provider';
 import { GluestackUIProvider as WebGluestackUIProvider } from './components/ui/gluestack-ui-provider/index.next15';
 

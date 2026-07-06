@@ -30,21 +30,22 @@ function AdminPostHogTestContent() {
   const configured = isPostHogConfigured();
 
   return (
-    <Screen className="flex-1 flex-col bg-background-50">
-      <Box className="bg-background-0 border-b border-outline-200 px-6 py-4 flex-row justify-between items-center">
+    <Screen className="flex-1 flex-col bg-background">
+      <Box className="bg-card border-b border-border px-6 py-4 flex-row justify-between items-center">
         <Heading size="md">Test PostHog</Heading>
-        <Button action="primary" variant="outline" size="sm" onPress={() => router.back()}>
+        <Button variant="outline" size="sm" onPress={() => router.back()}>
           <ButtonText>Back</ButtonText>
         </Button>
       </Box>
-      <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>
-        <Text className="text-typography-500">
+      <ScrollView className="flex-1 w-full">
+        <Box className="flex-col gap-4 p-6">
+        <Text className="text-muted-foreground">
           {configured
             ? "PostHog project token is configured."
             : "PostHog is not configured — events are no-ops."}
         </Text>
         <Button
-          action="primary"
+          variant="default"
           onPress={() => {
             trackProductEvent(AnalyticsEvent.ADMIN_POSTHOG_TEST, "admin", {
               source: "admin_posthog_test_screen",
@@ -55,6 +56,7 @@ function AdminPostHogTestContent() {
           <ButtonText>Send test event</ButtonText>
         </Button>
         {result ? <Text>{result}</Text> : null}
+        </Box>
       </ScrollView>
     </Screen>
   );

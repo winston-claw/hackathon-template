@@ -1,15 +1,13 @@
 "use client";
 
-import { Pressable, View } from "react-native";
+import { Box, Pressable, Text } from "@app-template/ui";
 import {
-  BrutalActionLabel,
-  BrutalBody,
-  BrutalButton,
-  BrutalDisplay,
-  BrutalInput,
-  BrutalMono,
-  BrutalSectionLabel,
-} from "./auth-ui";
+  AuthField,
+  AuthLinkText,
+  AuthMutedText,
+  AuthPrimaryButton,
+  AuthStepHeader,
+} from "./auth-form";
 import { AuthBanner } from "./auth-banner";
 
 type EmailVerificationFlow = "sign-in" | "sign-up" | "forgot-password";
@@ -32,7 +30,7 @@ type EmailVerificationStepProps = {
 const COPY: Record<
   EmailVerificationFlow,
   {
-    sectionLabel: string;
+    eyebrow: string;
     title: string;
     bodyPrefix: string;
     bodySuffix: string;
@@ -42,31 +40,31 @@ const COPY: Record<
   }
 > = {
   "sign-in": {
-    sectionLabel: "ALMOST THERE",
-    title: "CHECK YOUR\nEMAIL",
+    eyebrow: "Almost there",
+    title: "Check your email",
     bodyPrefix: "Enter the 6-digit code we sent to",
     bodySuffix: "to confirm this device.",
     verifyLabel: "Continue",
     verifyingLabel: "Verifying...",
-    changeEmailLabel: "BACK TO SIGN IN",
+    changeEmailLabel: "Back to sign in",
   },
   "sign-up": {
-    sectionLabel: "ONE MORE STEP",
-    title: "VERIFY YOUR\nEMAIL",
+    eyebrow: "One more step",
+    title: "Verify your email",
     bodyPrefix: "Enter the 6-digit code we sent to",
     bodySuffix: "to finish creating your account.",
     verifyLabel: "Verify email",
     verifyingLabel: "Verifying...",
-    changeEmailLabel: "USE A DIFFERENT EMAIL",
+    changeEmailLabel: "Use a different email",
   },
   "forgot-password": {
-    sectionLabel: "CHECK YOUR EMAIL",
-    title: "ENTER RESET\nCODE",
+    eyebrow: "Check your email",
+    title: "Enter reset code",
     bodyPrefix: "Enter the 6-digit code we sent to",
     bodySuffix: "to reset your password.",
     verifyLabel: "Verify code",
     verifyingLabel: "Verifying...",
-    changeEmailLabel: "USE A DIFFERENT EMAIL",
+    changeEmailLabel: "Use a different email",
   },
 };
 
@@ -90,26 +88,24 @@ export function EmailVerificationStep({
   const canResend = resendCooldownSeconds === 0 && !resending && !loading;
 
   return (
-    <View className="flex-col gap-5">
-      <View>
-        <BrutalSectionLabel>{copy.sectionLabel}</BrutalSectionLabel>
-        <BrutalDisplay className="mt-3" size={36}>
-          {copy.title}
-        </BrutalDisplay>
-        <BrutalBody className="mt-3 text-brutal-fg-dim" size={14}>
-          {copy.bodyPrefix}{" "}
-          <BrutalBody size={14} weight="700">
-            {email}
-          </BrutalBody>{" "}
-          {copy.bodySuffix}
-        </BrutalBody>
-      </View>
+    <Box className="flex-col gap-5">
+      <AuthStepHeader
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={
+          <>
+            {copy.bodyPrefix}{" "}
+            <Text className="font-semibold text-foreground">{email}</Text>{" "}
+            {copy.bodySuffix}
+          </>
+        }
+      />
 
       {info ? <AuthBanner tone="info" message={info} /> : null}
       {error ? <AuthBanner tone="error" message={error} /> : null}
 
-      <BrutalInput
-        label="VERIFICATION CODE"
+      <AuthField
+        label="Verification code"
         placeholder="000000"
         value={code}
         onChangeText={(value) =>
@@ -119,19 +115,12 @@ export function EmailVerificationStep({
         maxLength={6}
         autoComplete="one-time-code"
         textContentType="oneTimeCode"
-        inputStyle={{
-          textAlign: "center",
-          fontSize: 18,
-          letterSpacing: 6,
-        }}
+        className="text-center text-lg tracking-widest"
       />
 
-      <BrutalButton
-        label={loading ? copy.verifyingLabel : copy.verifyLabel}
-        onPress={onVerify}
-        disabled={!canVerify}
-        loading={loading}
-      />
+      <AuthPrimaryButton onPress={onVerify} disabled={!canVerify || loading}>
+        {loading ? copy.verifyingLabel : copy.verifyLabel}
+      </AuthPrimaryButton>
 
       <Pressable
         onPress={onResend}
@@ -142,19 +131,13 @@ export function EmailVerificationStep({
         className="mt-2 self-center"
       >
         {resending ? (
-          <BrutalMono className="text-brutal-fg-mute" tracking="wide">
-            SENDING...
-          </BrutalMono>
+          <AuthMutedText>Sending...</AuthMutedText>
         ) : resendCooldownSeconds > 0 ? (
-          <BrutalMono className="text-brutal-fg-mute" tracking="wide">
-            {`RESEND CODE IN ${resendCooldownSeconds}S`}
-          </BrutalMono>
+          <AuthMutedText>{`Resend code in ${resendCooldownSeconds}s`}</AuthMutedText>
         ) : (
-          <BrutalActionLabel
-            label="RESEND CODE"
-            className={canResend ? "text-brutal-accent-text" : "text-brutal-fg-mute"}
-            tracking="wide"
-          />
+          <AuthLinkText className={canResend ? undefined : 'text-muted-foreground'}>
+            Resend code
+          </AuthLinkText>
         )}
       </Pressable>
 
@@ -164,10 +147,8 @@ export function EmailVerificationStep({
         accessibilityLabel="Use a different email"
         className="self-center"
       >
-        <BrutalMono className="text-brutal-fg-dim" tracking="wide">
-          {copy.changeEmailLabel}
-        </BrutalMono>
+        <AuthMutedText>{copy.changeEmailLabel}</AuthMutedText>
       </Pressable>
-    </View>
+    </Box>
   );
 }

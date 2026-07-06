@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { View } from "react-native";
 import { useRouter } from "solito/navigation";
 import { Link, TextLink } from "solito/link";
 import {
+  Box,
   Heading,
   Text,
 } from "@app-template/ui";
@@ -31,27 +31,27 @@ export function LoginScreen() {
 
   return (
     <AuthScreen>
-      <View className="mb-6">
+      <Box className="mb-6">
         <Heading size="2xl" className="mb-2">
           Welcome back
         </Heading>
-        <Text className="text-typography-500">Sign in to your account</Text>
-      </View>
+        <Text className="text-muted-foreground">Sign in to your account</Text>
+      </Box>
 
       <ClerkSignIn onStepChange={setSignInStep} />
 
-      <View className="mt-6 flex-row justify-center gap-1">
-        <Text className="text-typography-500">No account?</Text>
+      <Box className="mt-6 flex-row justify-center gap-1">
+        <Text className="text-muted-foreground">No account?</Text>
         <TextLink href="/signup">
-          <Text className="text-primary-600 font-semibold">Sign up</Text>
+          <Text className="text-primary font-semibold">Sign up</Text>
         </TextLink>
-      </View>
+      </Box>
 
-      <View className="mt-4">
+      <Box className="mt-4">
         <TextLink href="/">
-          <Text className="text-typography-500 text-center">Back to home</Text>
+          <Text className="text-muted-foreground text-center">Back to home</Text>
         </TextLink>
-      </View>
+      </Box>
     </AuthScreen>
   );
 }

@@ -32,21 +32,21 @@ function AdminSentryTestContent() {
   const configured = isAdminSentryConfigured();
 
   return (
-    <Screen className="flex-1 flex-col bg-background-50">
-      <Box className="bg-background-0 border-b border-outline-200 px-6 py-4 flex-row justify-between items-center">
+    <Screen className="flex-1 flex-col bg-background">
+      <Box className="bg-card border-b border-border px-6 py-4 flex-row justify-between items-center">
         <Heading size="md">Test Sentry</Heading>
-        <Button action="primary" variant="outline" size="sm" onPress={() => router.back()}>
+        <Button variant="outline" size="sm" onPress={() => router.back()}>
           <ButtonText>Back</ButtonText>
         </Button>
       </Box>
-      <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>
-        <Text className="text-typography-500">
+      <ScrollView className="flex-1 w-full">
+        <Box className="flex-col gap-4 p-6">
+        <Text className="text-muted-foreground">
           {configured
             ? "Sentry DSN is configured for this build."
             : "Sentry DSN is not configured — events will not be sent."}
         </Text>
         <Button
-          action="primary"
           variant="outline"
           onPress={() => {
             captureAdminSentryTestMessage();
@@ -56,7 +56,7 @@ function AdminSentryTestContent() {
           <ButtonText>Send test message</ButtonText>
         </Button>
         <Button
-          action="primary"
+          variant="default"
           onPress={() => {
             captureAdminSentryTestException();
             setResult("Sent test exception to Sentry.");
@@ -65,6 +65,7 @@ function AdminSentryTestContent() {
           <ButtonText>Send test exception</ButtonText>
         </Button>
         {result ? <Text>{result}</Text> : null}
+        </Box>
       </ScrollView>
     </Screen>
   );

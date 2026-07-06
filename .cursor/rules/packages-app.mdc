@@ -9,6 +9,8 @@ alwaysApply: false
 ## Screens (`src/screens/`)
 
 - Compose `@app-template/ui` components — do not duplicate design-system styles inline.
+- Use **v5 semantic color tokens** (`bg-background`, `bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `text-primary`) — not v3 scales (`bg-background-50`, `text-typography-500`).
+- **Button:** `variant="default" | "outline" | "destructive"` — not `action="primary"`. **Alert:** `variant="default" | "destructive"`.
 - Import auth via `../auth` (`useAuth`). Never import auth from apps.
 - Use Solito for navigation: `Link`, `TextLink` from `solito/link`; `useRouter` from `solito/navigation` (Next.js App Router on web).
 - Mark screen files with `"use client"` when they use hooks.
@@ -20,7 +22,7 @@ import { Screen } from '../components/screen';
 
 export function MyScreen() {
   return (
-    <Screen className="flex-1 bg-background-50">
+    <Screen className="flex-1 bg-background">
       {/* content */}
     </Screen>
   );

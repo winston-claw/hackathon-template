@@ -21,7 +21,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (loading || needsOnboarding) {
     return (
-      <Box className="flex-1 flex-col items-center justify-center bg-background-50">
+      <Box className="flex-1 flex-col items-center justify-center bg-background">
         <Spinner size="large" />
       </Box>
     );

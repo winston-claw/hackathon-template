@@ -4,6 +4,7 @@ export { DashboardScreen } from "./src/screens/dashboard-screen";
 export { TasksScreen } from "./src/screens/tasks-screen";
 export { OnboardingHomeScreen } from "./src/screens/onboarding-home-screen";
 export { MarketingHomeScreen } from "./src/screens/marketing-home-screen";
+export { UiShowcaseScreen } from "./src/screens/ui-showcase-screen";
 export { AdminScreen } from "./src/screens/admin-screen";
 export { AdminEmailTestScreen } from "./src/screens/admin-email-test-screen";
 export { AdminNotificationTestScreen } from "./src/screens/admin-notification-test-screen";

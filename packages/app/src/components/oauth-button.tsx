@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text } from '@app-template/ui';
 
 type OAuthProvider = 'google' | 'apple';
 
@@ -47,7 +47,7 @@ export function OAuthButton({
         opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
       }}
     >
-      <Text style={{ color: brand.text, fontSize: 14, fontWeight: '600' }}>
+      <Text className="text-sm font-semibold" style={{ color: brand.text }}>
         {label}
       </Text>
     </Pressable>

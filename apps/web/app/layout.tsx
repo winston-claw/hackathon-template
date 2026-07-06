@@ -15,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body
-        className="font-inter flex min-h-full flex-1 flex-col"
+        className="font-sans flex min-h-full flex-1 flex-col"
         style={{ backgroundColor: '#f7f7f5' }}
       >
         <Providers>

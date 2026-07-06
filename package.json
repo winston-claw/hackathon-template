@@ -45,6 +45,7 @@
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-svg": "^15.15.5",
-    "expo-constants": "~18.0.13"
+    "expo-constants": "~18.0.13",
+    "lightningcss": "1.30.1"
   }
 }

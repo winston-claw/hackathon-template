@@ -118,8 +118,7 @@ function PillButton({
   const inverse = variant === "inverse";
   return (
     <Button
-      action="primary"
-      variant={solid || inverse ? "solid" : "outline"}
+      variant={solid || inverse ? "default" : "outline"}
       size="lg"
       className={`rounded-full px-6 ${
         inverse
@@ -190,6 +189,9 @@ export function MarketingHomeScreen() {
           <Box className="flex-row flex-wrap items-center gap-5">
             <NavLink>Features</NavLink>
             <NavLink>Pricing</NavLink>
+            <TextLink href="/ui">
+              <NavLink>Components</NavLink>
+            </TextLink>
             <TextLink href="/login">
               <NavLink>Log In</NavLink>
             </TextLink>
@@ -387,15 +389,13 @@ export function MarketingHomeScreen() {
             No credit card required. Cancel anytime.
           </Text>
           {subscribed ? (
-            <Text className="block font-medium text-success-600">
+            <Text className="block font-medium text-success">
               Thanks! You are on the list.
             </Text>
           ) : (
             <Box className="flex-row flex-wrap items-center gap-2.5">
               <Box className="min-w-[220px] flex-1">
                 <Input
-                  variant="outline"
-                  size="md"
                   className={`h-11 min-h-11 rounded-full border-[#ddd8d0] bg-white`}
                 >
                   <InputField
@@ -410,8 +410,7 @@ export function MarketingHomeScreen() {
                 </Input>
               </Box>
               <Button
-                action="primary"
-                variant="solid"
+                variant="default"
                 size="lg"
                 onPress={handleSubscribe}
                 className="self-start rounded-full border-[#2d2d2d] bg-[#2d2d2d] px-6"

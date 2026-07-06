@@ -3,7 +3,6 @@
   "compilerOptions": {
     "strict": true,
     "skipLibCheck": true,
-    "jsxImportSource": "nativewind",
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -16,6 +15,6 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "nativewind-env.d.ts"
+    "react-native-css-env.d.ts"
   ]
 }

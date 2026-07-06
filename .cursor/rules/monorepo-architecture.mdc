@@ -7,7 +7,7 @@ alwaysApply: true
 
 Three layers — respect boundaries:
 
-1. **`packages/ui`** — design system only (components + theme). No screens, auth, Convex, or Solito.
+1. **`packages/ui`** — Gluestack v5 design system (NativeWind v5 + Tailwind CSS v4). Components + theme only. No screens, auth, Convex, or Solito.
 2. **`packages/app`** — screens, auth, db client. Composes `@app-template/ui`.
 3. **`apps/web` + `apps/mobile`** — thin routes and platform wiring only.
 

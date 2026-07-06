@@ -1,6 +1,6 @@
 # App Template
 
-A production-ready universal app template with Next.js 15, Expo (React Native), Convex (auth + database), and Gluestack UI v3 (NativeWind). Web and mobile share the same Convex backend, auth logic, screens, and design system.
+A production-ready universal app template with Next.js 15, Expo (React Native), Convex (auth + database), and Gluestack UI v5 (NativeWind v5 + Tailwind v4). Web and mobile share the same Convex backend, auth logic, screens, and design system.
 
 **Repository:** [github.com/winston-claw/hackathon-template](https://github.com/winston-claw/hackathon-template)
 
@@ -11,7 +11,7 @@ A production-ready universal app template with Next.js 15, Expo (React Native), 
 - **Clerk** — Authentication (email/password, OAuth) with Convex JWT integration
 - **Convex** — Real-time database, notification outbox, Resend email, push notifications
 - **PostHog + Sentry** — Optional analytics and error monitoring (no-op without env vars)
-- **Gluestack UI v3** — Universal component library in `@app-template/ui` (NativeWind/Tailwind)
+- **Gluestack UI v5** — Universal component library in `@app-template/ui` (NativeWind v5 / Tailwind v4)
 - **Shared packages** — `@app-template/ui` (design system) and `@app-template/app` (screens, auth, db)
 - **Turborepo** — Cached builds and parallel dev tasks
 - **Example feature** — `/tasks` route demonstrating AuthGuard + Convex CRUD
@@ -41,17 +41,34 @@ rm -rf .git && git init && git add . && git commit -m "Initial commit from app t
 
 ### 2. Bootstrap (recommended)
 
-The init script renames the project, creates Convex + Vercel projects, writes env files, and deploys.
+Run the interactive init wizard. It prompts for API tokens (or reads them from the environment), then creates Convex, Clerk, and Vercel projects, renames the template, writes env files, and deploys.
 
-Get tokens from [Convex](https://dashboard.convex.dev) (Settings → Deploy Keys) and [Vercel](https://vercel.com/account/tokens), then:
+```bash
+npm run init
+```
+
+You'll be prompted for:
+
+| Prompt | Where to get it |
+|--------|-----------------|
+| **Convex deploy token** | [Convex Dashboard](https://dashboard.convex.dev) → Settings → Deploy Keys |
+| **Vercel token** | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| **Clerk** (optional auto-create) | Run `npx clerk auth login` first, or paste a [Platform API key](https://dashboard.clerk.com/user/developers) |
+
+You can also export tokens before running (skips those prompts):
 
 ```bash
 export CONVEX_TOKEN="your-convex-token"
 export VERCEL_TOKEN="your-vercel-token"
+export CLERK_PLATFORM_API_KEY="your-clerk-platform-key"  # optional
 npm run init
 ```
 
-You'll be prompted for a display name and bundle ID prefix (e.g. `com.mycompany`).
+The wizard asks for a display name and bundle ID prefix (e.g. `com.mycompany`), then:
+
+1. Creates a **Convex** project and deploys the backend
+2. Creates a **Vercel** project and sets env vars
+3. Creates a **Clerk** application (via Clerk CLI or Platform API), sets up the Convex JWT template, and writes Clerk keys locally + on Vercel/Convex
 
 After init, set your Apple Team ID in `apps/mobile/app.json` if building for iOS:
 
@@ -59,15 +76,6 @@ After init, set your Apple Team ID in `apps/mobile/app.json` if building for iOS
 "ios": {
   "appleTeamId": "YOUR_TEAM_ID"
 }
-```
-
-Add Google/Apple OAuth later with:
-
-```bash
-# Configure Clerk (see apps/web/.env.example and apps/mobile/.env.example)
-# 1. Create app at https://dashboard.clerk.com
-# 2. Enable Google/Apple in Clerk dashboard
-# 3. Set CLERK_JWT_ISSUER_DOMAIN on Convex deployment
 ```
 
 ### Manual setup (alternative)
@@ -80,6 +88,46 @@ npm run convex:dev   # log in, create a Convex project, copy the deployment URL
 cp apps/web/.env.example apps/web/.env.local
 cp apps/mobile/.env.example apps/mobile/.env
 # Set NEXT_PUBLIC_CONVEX_URL and EXPO_PUBLIC_CONVEX_URL to the same Convex URL
+```
+
+### Recovering from a failed init
+
+If init partially completed (Convex/Vercel created but deploy failed), finish manually:
+
+**1. Clerk + Convex auth** (required for deploy and login)
+
+```bash
+# Create a Clerk app at https://dashboard.clerk.com/apps/new
+# Activate Convex integration → copy Frontend API URL (https://xxx.clerk.accounts.dev)
+
+# Link Convex (if .env.local is missing):
+echo 'CONVEX_DEPLOYMENT=dev:YOUR-DEPLOYMENT' >> .env.local   # from Convex dashboard
+echo 'NEXT_PUBLIC_CONVEX_URL=https://YOUR-DEPLOYMENT.convex.cloud' >> .env.local
+
+# Set issuer BEFORE deploy:
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://YOUR-INSTANCE.clerk.accounts.dev
+
+# Deploy backend:
+npx convex deploy
+```
+
+**2. Local env files** — ensure these exist:
+
+- `apps/web/.env.local` — `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+- `apps/mobile/.env` — `EXPO_PUBLIC_CONVEX_URL`, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`
+
+**3. Vercel** — connect **your** GitHub repo (not the template repo), then:
+
+```bash
+npm run deploy          # or: npx vercel deploy --prod from repo root
+```
+
+If Vercel shows "No framework detected", confirm root `vercel.json` has `buildCommand: npm run build:web` and `outputDirectory: apps/web/.next`.
+
+**4. Local dev** (works without Vercel deploy):
+
+```bash
+npm run dev:all
 ```
 
 ### 3. Build the mobile dev client (one-time)
@@ -130,7 +178,7 @@ app-template/
 │   ├── web/                 # Next.js — thin routes + platform wiring
 │   └── mobile/              # Expo — thin routes + platform wiring
 ├── packages/
-│   ├── ui/                  # Gluestack v3 + NativeWind design system
+│   ├── ui/                  # Gluestack v5 + NativeWind design system
 │   └── app/                 # Screens, AuthGuard, auth, Convex client
 ├── convex/                  # Convex backend (schema, auth, tasks)
 ├── turbo.json               # Turborepo task config
@@ -180,7 +228,7 @@ After logging in, visit `/tasks` to add, complete, and delete tasks. Backend: `c
 | `npm run convex:dev` | Convex dev + codegen |
 | `npm run build:web` | Production web build |
 | `npm run typecheck` | Turborepo typecheck |
-| `npm run init` | New project setup (Convex + Vercel) |
+| `npm run init` | Interactive new project setup (Convex + Clerk + Vercel) |
 | `npm run auth` | Add Google + Apple OAuth |
 | `npm run deploy` | Deploy Convex + Vercel only |
 
@@ -217,7 +265,7 @@ npm run convex:deploy
 - [Next.js 15](https://nextjs.org/)
 - [Expo 54](https://expo.dev/)
 - [Convex](https://convex.dev/)
-- [Gluestack UI v3](https://gluestack.io/ui)
+- [Gluestack UI v5](https://gluestack.io/ui)
 - [NativeWind](https://www.nativewind.dev/)
 - [Turborepo](https://turbo.build/)
 - [TypeScript](https://www.typescriptlang.org/)

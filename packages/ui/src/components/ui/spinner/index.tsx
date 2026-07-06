@@ -1,8 +1,8 @@
 'use client';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator } from '../../../rn-primitives';
 import React from 'react';
 import { tva } from '@gluestack-ui/utils/nativewind-utils';
-import { cssInterop } from 'nativewind';
+import { cssInterop } from '../../../nativewind-compat';
 
 cssInterop(ActivityIndicator, {
   className: { target: 'style', nativeStyleToProp: { color: true } },

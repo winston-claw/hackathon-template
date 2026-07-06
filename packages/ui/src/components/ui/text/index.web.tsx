@@ -3,12 +3,16 @@ import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import { textStyle } from './styles';
 import { flattenWebStyle } from '../../../utils/flatten-web-style';
 
-type ITextProps = React.ComponentProps<'span'> & VariantProps<typeof textStyle>;
+type ITextProps = React.ComponentProps<'span'> &
+  VariantProps<typeof textStyle> & {
+    style?: React.ComponentProps<'span'>['style'] | Record<string, unknown> | Array<unknown>;
+  };
 
 const Text = React.forwardRef<React.ComponentRef<'span'>, ITextProps>(
   function Text(
     {
       className,
+      style,
       isTruncated,
       bold,
       underline,
@@ -17,7 +21,6 @@ const Text = React.forwardRef<React.ComponentRef<'span'>, ITextProps>(
       sub,
       italic,
       highlight,
-      style,
       ...props
     }: { className?: string } & ITextProps,
     ref
@@ -35,7 +38,7 @@ const Text = React.forwardRef<React.ComponentRef<'span'>, ITextProps>(
           highlight: highlight as boolean,
           class: className,
         })}
-        style={flattenWebStyle(style)}
+        style={flattenWebStyle(style as Parameters<typeof flattenWebStyle>[0])}
         {...props}
         ref={ref}
       />

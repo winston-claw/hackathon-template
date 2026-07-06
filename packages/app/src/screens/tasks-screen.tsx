@@ -117,22 +117,23 @@ function TasksContent() {
   };
 
   return (
-    <Screen className="flex-1 flex-col bg-background-50">
-      <Box className="bg-background-0 border-b border-outline-200 px-6 py-4 flex-row items-center justify-between">
-        <Text className="text-lg font-bold text-typography-900">Tasks</Text>
-        <Button action="primary" variant="outline" size="md" onPress={() => router.back()}>
+    <Screen className="flex-1 flex-col bg-background">
+      <Box className="bg-card border-b border-border px-6 py-4 flex-row items-center justify-between">
+        <Text className="text-lg font-bold text-foreground">Tasks</Text>
+        <Button variant="outline" onPress={() => router.back()}>
           <ButtonText>Back</ButtonText>
         </Button>
       </Box>
 
-      <ScrollView contentContainerStyle={{ padding: 24, maxWidth: 640, width: "100%", alignSelf: "center" }}>
-        <Text className="text-typography-500 mb-4">
+      <ScrollView className="flex-1 w-full">
+        <Box className="mx-auto w-full max-w-[640px] flex-col gap-6 p-6">
+        <Text className="text-muted-foreground mb-4">
           A sample Convex feature — add, complete, and delete tasks.
         </Text>
 
         <Box className="flex-row gap-2 mb-6 items-start">
           <Box className="flex-1">
-            <Input variant="outline" size="md" className="flex-1">
+            <Input className="flex-1">
               <InputField
                 placeholder="New task..."
                 value={title}
@@ -142,8 +143,7 @@ function TasksContent() {
             </Input>
           </Box>
           <Button
-            action="primary"
-            size="md"
+            variant="default"
             isDisabled={creating || !title.trim()}
             onPress={handleCreate}
           >
@@ -152,15 +152,15 @@ function TasksContent() {
         </Box>
 
         {tasks === undefined ? (
-          <Text className="text-typography-500">Loading tasks...</Text>
+          <Text className="text-muted-foreground">Loading tasks...</Text>
         ) : tasks.length === 0 ? (
-          <Text className="text-typography-500">No tasks yet. Add one above.</Text>
+          <Text className="text-muted-foreground">No tasks yet. Add one above.</Text>
         ) : (
           <Box className="gap-3">
             {tasks.map((task) => (
               <Box
                 key={task._id}
-                className="bg-background-0 border border-outline-200 rounded-2xl p-4 flex-row items-center gap-3"
+                className="bg-card border border-border rounded-2xl p-4 flex-row items-center gap-3"
               >
                 <TaskCheckbox
                   checked={task.done}
@@ -170,15 +170,14 @@ function TasksContent() {
                 <Text
                   className={`flex-1 text-base ${
                     task.done
-                      ? "text-typography-400 line-through"
-                      : "text-typography-900"
+                      ? "text-muted-foreground line-through"
+                      : "text-foreground"
                   }`}
                 >
                   {task.title}
                 </Text>
                 <Button
-                  action="primary"
-                  variant="outline"
+                  variant="destructive"
                   size="sm"
                   isDisabled={pendingId === task._id}
                   onPress={() => handleDelete(task._id, task.title)}
@@ -189,6 +188,7 @@ function TasksContent() {
             ))}
           </Box>
         )}
+        </Box>
       </ScrollView>
     </Screen>
   );

@@ -10,7 +10,7 @@ app-template/
 │   ├── web/          # Next.js 15 App Router — thin routes + platform wiring only
 │   └── mobile/       # Expo Router — thin routes + platform wiring only
 ├── packages/
-│   ├── ui/           # Design system (Gluestack v3 + NativeWind)
+│   ├── ui/           # Design system (Gluestack v5 + NativeWind v5)
 │   └── app/          # Product code: screens, auth, Convex client
 └── convex/           # Canonical Convex backend (schema, mutations, auth)
 ```
@@ -19,11 +19,15 @@ app-template/
 
 ### `@app-template/ui` — design system only
 
-- **Contains:** Gluestack v3 components (`src/components/ui/*`), `UIProvider`, theme config in `gluestack-ui-provider/config.ts`
+- **Contains:** Gluestack v5 components (`src/components/ui/*`), `UIProvider`, theme tokens in `global.css` and `gluestack-ui-provider/config.ts`, `src/nativewind-compat.ts` (cssInterop shim)
 - **Must NOT contain:** screens, auth, Convex, Solito, business logic, or API calls
-- **Styling:** NativeWind / Tailwind utility classes via Gluestack components. Theme tokens live in `gluestack-ui-provider/config.ts` — not hand-rolled StyleSheet files.
-- **Add Gluestack primitives:** `cd packages/ui && npx gluestack-ui add <component>`
+- **Styling:** NativeWind v5 + Tailwind CSS v4. Theme tokens are **semantic** (`primary`, `foreground`, `muted`, `card`, `border`, `destructive`) — defined in `global.css` (`@layer theme`, `@theme inline`) and `config.ts`. No `tailwind.config.js`.
+- **Add Gluestack primitives** (from repo root):
+  ```bash
+  npx gluestack-ui@latest add <component> --monorepo --path packages/ui/src/components/ui -y
+  ```
 - **Exports:** add new public components to `packages/ui/index.ts`; export `global.css` for web via `@app-template/ui/global.css`
+- **v5 component APIs:** Button uses `variant` (`default`, `outline`, `destructive`, …) — not `action="primary"`. Alert uses `variant="default" | "destructive"`. See [v5 docs](https://v5.gluestack.io/ui/docs).
 
 ### `@app-template/app` — product layer
 
@@ -49,10 +53,9 @@ app-template/
 
 ### New Gluestack UI primitive
 
-1. `cd packages/ui && npx gluestack-ui add <component>`
-2. Optionally wrap in `packages/ui/src/components/my-component.tsx` for a stable public API
-3. Export from `packages/ui/index.ts`
-4. Customize theme tokens in `gluestack-ui-provider/config.ts` if needed
+1. From repo root: `npx gluestack-ui@latest add <component> --monorepo --path packages/ui/src/components/ui -y`
+2. Export from `packages/ui/index.ts`
+3. Customize theme in **both** `packages/ui/global.css` and `packages/ui/src/components/ui/gluestack-ui-provider/config.ts` if needed
 
 ### New screen
 
@@ -110,10 +113,11 @@ catch (error) {
 
 ## Tech stack
 
-- **Web:** Next.js 15, react-native-web, NativeWind, Gluestack UI v3, Solito, Convex
-- **Mobile:** Expo 54, Expo Router, React Native 0.81, React 19, NativeWind, Gluestack UI v3, **expo-dev-client** (not Expo Go)
+- **Web:** Next.js 15, react-native-web, NativeWind v5, Tailwind CSS v4, Gluestack UI v5, Solito, Convex
+- **Mobile:** Expo 54, Expo Router, React Native 0.81, React 19, NativeWind v5, Gluestack UI v5, **expo-dev-client** (not Expo Go)
 - **Backend:** Convex (`convex/` at repo root)
 - **Monorepo:** npm workspaces + Turborepo (`turbo.json`)
+- **UI docs:** [gluestack.io/llms.txt](https://gluestack.io/llms.txt) · [v5.gluestack.io](https://v5.gluestack.io/ui/docs)
 
 ## Commands (run from repo root)
 
@@ -126,7 +130,7 @@ catch (error) {
 | `npm run convex:dev` | Convex dev + codegen |
 | `npm run build:web` | Production web build |
 | `npm run typecheck` | Turborepo typecheck across workspaces |
-| `npm run init` | New project setup (Convex + Vercel + Clerk checklist) |
+| `npm run init` | Interactive new project setup (Convex + Clerk + Vercel) |
 | `npm run env:sync:convex-email` | Push Resend env vars to Convex |
 
 ## Environment variables
@@ -135,11 +139,28 @@ catch (error) {
 - Mobile: `EXPO_PUBLIC_CONVEX_URL` in `apps/mobile/.env` (see `apps/mobile/.env.example`)
 - Use the **same** Convex deployment URL for both apps
 
+## Gluestack v5 styling reference
+
+This repo uses **NativeWind v5 + Tailwind CSS v4** with semantic tokens. Key files:
+
+| File | Purpose |
+|------|---------|
+| `packages/ui/global.css` | Tailwind v4 imports, `@layer theme`, `@theme inline` |
+| `packages/ui/src/components/ui/gluestack-ui-provider/config.ts` | RN runtime CSS vars via `vars()` |
+| `gluestack-ui.config.json` | CLI monorepo config (repo root) |
+| `packages/ui/src/nativewind-compat.ts` | `cssInterop` shim for generated components |
+
+Platform config: `apps/web/postcss.config.js`, `apps/mobile/metro.config.js`, `apps/mobile/babel.config.js`.
+
+Full LLM-oriented docs: [gluestack.io/llms.txt](https://gluestack.io/llms.txt) · Component API: [v5.gluestack.io](https://v5.gluestack.io/ui/docs)
+
 ## Do not
 
 - Put screen UI in `apps/web` or `apps/mobile` — use `packages/app`
 - Put business logic or Convex hooks in `packages/ui`
 - Add raw StyleSheet-based components in `packages/ui` — use Gluestack + NativeWind
+- Use v3 color classes (`text-typography-500`, `bg-background-0`, `border-outline-200`, `action="primary"`) — v5 uses semantic tokens (`text-muted-foreground`, `bg-card`, `border-border`, `variant="default"`)
+- Add `tailwind.config.js` or `nativewind/babel` — v5 is CSS-first via PostCSS
 - Create separate `auth` or `db` packages (consolidated in `@app-template/app`)
 - Use DOM-only components (`div`, Tailwind class strings on web-only elements) in shared screens — use RN primitives / Gluestack for cross-platform
 - Commit unless explicitly asked

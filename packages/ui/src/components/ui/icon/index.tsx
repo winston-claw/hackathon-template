@@ -2,7 +2,7 @@ import React from 'react';
 import { createIcon } from '@gluestack-ui/core/icon/creator';
 import { Path } from 'react-native-svg';
 import { tva } from '@gluestack-ui/utils/nativewind-utils';
-import { cssInterop } from 'nativewind';
+import { cssInterop } from '../../../nativewind-compat';
 import { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 import {
   PrimitiveIcon,
@@ -18,7 +18,7 @@ export const UIIcon = createIcon({
 >;
 
 const iconStyle = tva({
-  base: 'text-typography-950 fill-none pointer-events-none',
+  base: 'text-foreground fill-none pointer-events-none',
   variants: {
     size: {
       '2xs': 'h-3 w-3',

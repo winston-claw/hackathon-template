@@ -5,6 +5,7 @@ import {
   Dimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  ScrollView as RNScrollView,
 } from "react-native";
 import { TextLink } from "solito/link";
 import { useRouter } from "solito/navigation";
@@ -24,7 +25,7 @@ const CIRCLE_SIZE = Math.min(width * 0.44, 200);
 
 export function OnboardingHomeScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<RNScrollView>(null);
   const router = useRouter();
 
   const handleScroll = useCallback(
@@ -87,7 +88,7 @@ export function OnboardingHomeScreen() {
 
       <Box className="gap-4 px-7">
         <Button
-          action="primary"
+          variant="default"
           size="lg"
           onPress={() => router.push("/signup")}
           className="h-[54px] w-full self-stretch rounded-full border-[#2d2d2d] bg-[#2d2d2d]"

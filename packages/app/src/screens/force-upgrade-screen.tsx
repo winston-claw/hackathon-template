@@ -1,6 +1,6 @@
 "use client";
 
-import { Platform, View } from "react-native";
+import { Platform } from "react-native";
 import {
   Box,
   Button,
@@ -17,23 +17,23 @@ const STORE_NAME =
 
 export function ForceUpgradeScreen() {
   return (
-    <Screen className="flex-1 bg-background-50">
+    <Screen className="flex-1 bg-background">
       <Box className="flex-1 justify-center px-6 gap-6">
-        <View>
-          <Text className="text-xs uppercase tracking-wider text-primary-600 font-semibold mb-2">
+        <Box className="gap-2">
+          <Text className="text-xs uppercase tracking-wider text-primary font-semibold mb-2">
             Update required
           </Text>
           <Heading size="2xl" className="mb-3">
             Time to update
           </Heading>
-          <Text className="text-typography-500 text-base">
+          <Text className="text-muted-foreground text-base">
             This version is no longer supported. Update from {STORE_NAME} to continue.
           </Text>
-        </View>
-        <Button action="primary" size="lg" onPress={openStoreListing}>
+        </Box>
+        <Button variant="default" size="lg" onPress={openStoreListing}>
           <ButtonText>Update app</ButtonText>
         </Button>
-        <Text className="text-typography-400 text-sm">
+        <Text className="text-muted-foreground text-sm">
           Installed v{APP_VERSION_NUMBER}
         </Text>
       </Box>

@@ -1,7 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
-import { withGluestackUI } from '@gluestack/ui-next-adapter';
 import { withSentryConfig } from '@sentry/nextjs';
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
@@ -20,7 +19,7 @@ const nextConfig = {
     'react-native-web',
     'solito',
     'nativewind',
-    'react-native-css-interop',
+    'react-native-css',
     '@gluestack-ui/core',
     '@gluestack-ui/utils',
   ],
@@ -35,7 +34,12 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
-  webpack: (config) => {
+  webpack: (config, { webpack }) => {
+    config.plugins.push(
+      new webpack.DefinePlugin({
+        __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
+      }),
+    );
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       'react-native$': 'react-native-web',
@@ -52,7 +56,7 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(withGluestackUI(nextConfig), {
+export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,

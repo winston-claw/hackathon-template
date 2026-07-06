@@ -31,19 +31,19 @@ export class AppErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <Box className="flex-1 flex-col items-center justify-center bg-background-50 p-6">
-          <Text className="text-xl font-bold text-typography-900 mb-2">
+        <Box className="flex-1 flex-col items-center justify-center bg-background p-6">
+          <Text className="text-xl font-bold text-foreground mb-2">
             Something went wrong
           </Text>
-          <Text className="text-typography-500 mb-6 text-center">
+          <Text className="text-muted-foreground mb-6 text-center">
             {getUserFacingErrorMessage(this.state.error)}
           </Text>
           {process.env.NODE_ENV === 'development' ? (
-            <Text className="text-typography-400 mb-6 text-center text-xs">
+            <Text className="text-muted-foreground mb-6 text-center text-xs">
               {this.state.error.message}
             </Text>
           ) : null}
-          <Button action="primary" size="md" onPress={this.handleRetry}>
+          <Button variant="default" onPress={this.handleRetry}>
             <ButtonText>Try again</ButtonText>
           </Button>
         </Box>

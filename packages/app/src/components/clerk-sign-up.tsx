@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Platform, View } from "react-native";
+import { Platform } from "react-native";
+import { Box } from "@app-template/ui";
 import { useRouter } from "solito/navigation";
 import {
-  BRUTAL_COLORS,
-  BrutalBody,
-  BrutalButton,
-  BrutalDisplay,
-  BrutalInput,
-  BrutalMono,
-} from "./auth-ui";
+  AuthDivider,
+  AuthField,
+  AuthPrimaryButton,
+  AuthStepHeader,
+} from "./auth-form";
 import { clerkErrorMessage } from "../auth/clerk/clerk-errors";
 import { LoadingSpinner } from "./loading-spinner";
 import { isSessionExistsError } from "../auth/clerk/is-session-exists-error";
@@ -326,17 +325,15 @@ export function ClerkSignUp({
       return null;
     }
     return (
-      <View className="items-stretch">
-        <BrutalDisplay size={32}>
-          SETTING UP{"\n"}YOUR ACCOUNT
-        </BrutalDisplay>
-        <BrutalBody className="mt-3 text-brutal-fg-dim" size={14}>
-          Saving your club and team details…
-        </BrutalBody>
-        <View className="mt-10 items-center">
+      <Box className="items-stretch gap-3">
+        <AuthStepHeader
+          title="Setting up your account"
+          description="Saving your club and team details…"
+        />
+        <Box className="mt-6 items-center">
           <LoadingSpinner />
-        </View>
-      </View>
+        </Box>
+      </Box>
     );
   }
 
@@ -360,13 +357,13 @@ export function ClerkSignUp({
   }
 
   return (
-    <View className="flex-col gap-5">
-      {header ? <View>{header}</View> : null}
+    <Box className="flex-col gap-5">
+      {header ? <Box>{header}</Box> : null}
 
       {error ? <AuthBanner tone="error" message={error} /> : null}
 
-      <BrutalInput
-        label="FULL NAME"
+      <AuthField
+        label="Full name"
         placeholder="Alex Johnson"
         value={name}
         onChangeText={setName}
@@ -375,13 +372,13 @@ export function ClerkSignUp({
         textContentType="name"
         error={
           touched.name && !nameIsValid
-            ? "NAME SHOULD BE AT LEAST 2 CHARACTERS."
+            ? 'Name should be at least 2 characters.'
             : null
         }
       />
 
-      <BrutalInput
-        label="EMAIL"
+      <AuthField
+        label="Email"
         placeholder="you@example.com"
         value={email}
         onChangeText={(value) => setEmail(value.trimStart())}
@@ -392,12 +389,12 @@ export function ClerkSignUp({
         autoComplete="email"
         textContentType="emailAddress"
         error={
-          touched.email && !emailIsValid ? "USE A VALID EMAIL FORMAT." : null
+          touched.email && !emailIsValid ? 'Enter a valid email address.' : null
         }
       />
 
-      <BrutalInput
-        label="PASSWORD"
+      <AuthField
+        label="Password"
         placeholder="••••••••"
         value={password}
         onChangeText={setPassword}
@@ -405,32 +402,26 @@ export function ClerkSignUp({
         secureTextEntry
         autoComplete="password-new"
         textContentType="newPassword"
-        helper="MINIMUM 8 CHARACTERS."
+        helper="Minimum 8 characters."
         error={
           touched.password && !passwordIsValid
-            ? "PASSWORD MUST BE AT LEAST 8 CHARACTERS."
+            ? 'Password must be at least 8 characters.'
             : null
         }
       />
 
       <ClerkCaptcha />
 
-      <BrutalButton
-        label={loading ? "Creating account..." : "Create account"}
+      <AuthPrimaryButton
         onPress={() => void handleSubmit()}
-        disabled={!canSubmit}
-        loading={loading}
-      />
+        disabled={!canSubmit || loading}
+      >
+        {loading ? 'Creating account...' : 'Create account'}
+      </AuthPrimaryButton>
 
-      <View className="mt-2 flex-row items-center gap-3">
-        <View className="h-px flex-1 bg-brutal-line-strong" />
-        <BrutalMono className="text-brutal-fg-dim" tracking="wide">
-          OR CONTINUE WITH
-        </BrutalMono>
-        <View className="h-px flex-1 bg-brutal-line-strong" />
-      </View>
+      <AuthDivider />
 
-      <View className="flex-col">
+      <Box className="flex-col">
         <OAuthButton
           provider="google"
           label="Sign up with Google"
@@ -445,7 +436,7 @@ export function ClerkSignUp({
             disabled={loading}
           />
         ) : null}
-      </View>
-    </View>
+      </Box>
+    </Box>
   );
 }

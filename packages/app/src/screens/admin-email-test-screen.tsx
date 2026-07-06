@@ -50,22 +50,23 @@ function AdminEmailTestContent() {
   };
 
   return (
-    <Screen className="flex-1 flex-col bg-background-50">
-      <Box className="bg-background-0 border-b border-outline-200 px-6 py-4 flex-row justify-between items-center">
+    <Screen className="flex-1 flex-col bg-background">
+      <Box className="bg-card border-b border-border px-6 py-4 flex-row justify-between items-center">
         <Heading size="md">Test email</Heading>
-        <Button action="primary" variant="outline" size="sm" onPress={() => router.back()}>
+        <Button variant="outline" size="sm" onPress={() => router.back()}>
           <ButtonText>Back</ButtonText>
         </Button>
       </Box>
-      <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>
+      <ScrollView className="flex-1 w-full">
+        <Box className="flex-col gap-4 p-6">
         {!page ? (
           <Text>Loading...</Text>
         ) : (
           <>
-            <Text className="text-typography-500">
+            <Text className="text-muted-foreground">
               Send the welcome template via the notification outbox.
             </Text>
-            <Input variant="outline" size="md">
+            <Input>
               <InputField
                 placeholder={`Target email (default: ${page.email})`}
                 value={targetEmail}
@@ -74,12 +75,13 @@ function AdminEmailTestContent() {
                 keyboardType="email-address"
               />
             </Input>
-            <Button action="primary" isDisabled={loading} onPress={handleSend}>
+            <Button variant="default" isDisabled={loading} onPress={handleSend}>
               <ButtonText>{loading ? "Sending..." : "Send welcome email"}</ButtonText>
             </Button>
             {result ? <Text>{result}</Text> : null}
           </>
         )}
+        </Box>
       </ScrollView>
     </Screen>
   );

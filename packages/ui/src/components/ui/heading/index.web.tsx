@@ -1,6 +1,5 @@
 import React, { forwardRef, memo } from 'react';
 import { headingStyle } from './styles';
-import { flattenWebStyle } from '../../../utils/flatten-web-style';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 type IHeadingProps = VariantProps<typeof headingStyle> &
   React.ComponentPropsWithoutRef<'h1'> & {
@@ -19,12 +18,10 @@ const MappedHeading = memo(
       sub,
       italic,
       highlight,
-      style,
       ...props
     },
     ref
   ) {
-    const domProps = { ...props, style: flattenWebStyle(style) };
     switch (size) {
       case '5xl':
       case '4xl':
@@ -42,7 +39,7 @@ const MappedHeading = memo(
               highlight: highlight as boolean,
               class: className,
             })}
-            {...domProps}
+            {...props}
             ref={ref}
           />
         );
@@ -60,7 +57,7 @@ const MappedHeading = memo(
               highlight: highlight as boolean,
               class: className,
             })}
-            {...domProps}
+            {...props}
             ref={ref}
           />
         );
@@ -78,7 +75,7 @@ const MappedHeading = memo(
               highlight: highlight as boolean,
               class: className,
             })}
-            {...domProps}
+            {...props}
             ref={ref}
           />
         );
@@ -96,7 +93,7 @@ const MappedHeading = memo(
               highlight: highlight as boolean,
               class: className,
             })}
-            {...domProps}
+            {...props}
             ref={ref}
           />
         );
@@ -114,7 +111,7 @@ const MappedHeading = memo(
               highlight: highlight as boolean,
               class: className,
             })}
-            {...domProps}
+            {...props}
             ref={ref}
           />
         );
@@ -133,7 +130,7 @@ const MappedHeading = memo(
               highlight: highlight as boolean,
               class: className,
             })}
-            {...domProps}
+            {...props}
             ref={ref}
           />
         );
@@ -151,7 +148,7 @@ const MappedHeading = memo(
               highlight: highlight as boolean,
               class: className,
             })}
-            {...domProps}
+            {...props}
             ref={ref}
           />
         );
@@ -161,10 +158,9 @@ const MappedHeading = memo(
 
 const Heading = memo(
   forwardRef<HTMLHeadingElement, IHeadingProps>(function Heading(
-    { className, size = 'lg', as: AsComp, style, ...props },
+    { className, size = 'lg', as: AsComp, ...props },
     ref
   ) {
-    const domProps = { ...props, style: flattenWebStyle(style) };
     const {
       isTruncated,
       bold,
@@ -189,14 +185,14 @@ const Heading = memo(
             highlight: highlight as boolean,
             class: className,
           })}
-          {...domProps}
+          {...props}
           ref={ref}
         />
       );
     }
 
     return (
-      <MappedHeading className={className} size={size} ref={ref} {...domProps} />
+      <MappedHeading className={className} size={size} ref={ref} {...props} />
     );
   })
 );

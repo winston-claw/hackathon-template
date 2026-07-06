@@ -12,7 +12,7 @@ type AuthBannerProps = {
 
 export function AuthBanner({ tone, message, className }: AuthBannerProps) {
   return (
-    <Alert action={tone === 'error' ? 'error' : 'info'} className={className ?? 'mb-4'}>
+    <Alert variant={tone === 'error' ? 'destructive' : 'default'} className={className ?? 'mb-4'}>
       <AlertText>{message}</AlertText>
     </Alert>
   );

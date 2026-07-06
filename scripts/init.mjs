@@ -2,30 +2,30 @@
 
 /**
  * Project init CLI: bootstraps a new project from this template.
- * Requires CONVEX_TOKEN and VERCEL_TOKEN in the environment.
+ *
+ * Interactively prompts for API tokens (or reads CONVEX_TOKEN / VERCEL_TOKEN /
+ * CLERK_PLATFORM_API_KEY from the environment), then creates Convex, Vercel,
+ * and Clerk projects and writes local env files.
  *
  * Usage:
- *   node scripts/init.mjs        create projects, rename, deploy
- *   node scripts/init.mjs --deploy   deploy only (Convex + Vercel)
+ *   node scripts/init.mjs              create projects, rename, deploy
+ *   node scripts/init.mjs --deploy     deploy only (Convex + Vercel)
  *
  * Or: npm run init   /   npm run deploy
  */
 
-import { createInterface } from "readline";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn, execSync } from "child_process";
+import { createPrompter } from "./lib/init-prompts.mjs";
+import { setupClerkAutomatically } from "./lib/init-clerk.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const INIT_AUTH_DIR = path.join(ROOT, ".init", "auth");
 
-const DEPLOY_ONLY = process.argv.includes("--deploy");
-const AUTH_ONLY = process.argv.includes("--auth");
-
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const question = (q) => new Promise((resolve) => rl.question(q, resolve));
+const CLERK_JWT_ISSUER_PLACEHOLDER = "https://placeholder.clerk.accounts.dev";
 
 function slugify(name) {
   return name
@@ -77,14 +77,81 @@ async function preflightChecks(authMode) {
   }
 }
 
-async function runDeployOnly() {
+async function setVercelEnvVar(projectName, vercelToken, key, value) {
+  try {
+    await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(projectName)}/env`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${vercelToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        key,
+        value,
+        type: "plain",
+        target: ["production", "preview", "development"],
+      }),
+    });
+  } catch (error) {
+    console.warn(`Vercel env var ${key} failed (continuing):`, error.message);
+  }
+}
+
+async function setConvexEnvVar(key, value, { convexUrl, deployKey, env = process.env } = {}) {
+  const args = ["convex", "env", "set", key, value];
+  if (convexUrl) args.push("--url", convexUrl);
+  if (deployKey) args.push("--admin-key", deployKey);
+
+  await new Promise((resolve, reject) => {
+    const child = spawn("npx", args, {
+      cwd: ROOT,
+      stdio: "pipe",
+      shell: false,
+      env,
+    });
+    child.on("exit", (code) =>
+      code === 0 ? resolve() : reject(new Error(`convex env set ${key} failed`))
+    );
+  });
+}
+
+async function prepareConvexAuthEnv(clerkConfig, { convexUrl, deployKey, convexDeployEnv }) {
+  const jwtIssuer = clerkConfig?.jwtIssuerDomain ?? CLERK_JWT_ISSUER_PLACEHOLDER;
+
+  if (!clerkConfig?.jwtIssuerDomain) {
+    console.warn(
+      "\n  Clerk was skipped — using placeholder CLERK_JWT_ISSUER_DOMAIN for deploy.",
+      "Update it in the Convex dashboard after adding Clerk.\n"
+    );
+  }
+
+  console.log("Setting CLERK_JWT_ISSUER_DOMAIN on Convex (required before deploy)...");
+  await setConvexEnvVar("CLERK_JWT_ISSUER_DOMAIN", jwtIssuer, {
+    convexUrl,
+    deployKey,
+    env: convexDeployEnv,
+  });
+  console.log("  CLERK_JWT_ISSUER_DOMAIN set.");
+}
+
+async function writeConvexDeploymentLink({ deploymentName, convexUrl }) {
+  if (!deploymentName && !convexUrl) return;
+
+  const lines = [];
+  if (deploymentName) lines.push(`CONVEX_DEPLOYMENT=${deploymentName}`);
+  if (convexUrl) lines.push(`NEXT_PUBLIC_CONVEX_URL=${convexUrl}`);
+
+  await fs.writeFile(path.join(ROOT, ".env.local"), lines.join("\n") + "\n");
+  console.log("Wrote .env.local (Convex deployment link)");
+}
+
+async function runDeployOnly(prompter) {
   console.log("Deploy only – Convex + Vercel\n");
 
-  const vercelToken = process.env.VERCEL_TOKEN;
-  if (!vercelToken) {
-    console.error("Missing VERCEL_TOKEN. Set it for Vercel deploy.");
-    process.exit(1);
-  }
+  const vercelToken = await prompter.promptToken("Vercel token", {
+    envVar: "VERCEL_TOKEN",
+    helpText: ["Create one at https://vercel.com/account/tokens"],
+  });
 
   console.log("Deploying to Convex...");
   try {
@@ -462,31 +529,35 @@ Manual Apple steps (if not done yet):
 }
 
 async function main() {
-  if (DEPLOY_ONLY) {
-    await runDeployOnly();
-    rl.close();
-    return;
-  }
-  if (AUTH_ONLY) {
-    console.log("OAuth init was removed — this template uses Clerk. See README for setup.");
-    rl.close();
-    return;
-  }
+  const prompter = createPrompter();
 
-  console.log("Project init – Convex + Vercel + template renames\n");
+  try {
+    if (DEPLOY_ONLY) {
+      await runDeployOnly(prompter);
+      return;
+    }
+    if (AUTH_ONLY) {
+      console.log("OAuth init was removed — this template uses Clerk. See README for setup.");
+      return;
+    }
 
-  const convexToken = process.env.CONVEX_TOKEN;
-  const vercelToken = process.env.VERCEL_TOKEN;
-  if (!convexToken) {
-    console.error("Missing CONVEX_TOKEN. Set it and run again.");
-    process.exit(1);
-  }
-  if (!vercelToken) {
-    console.error("Missing VERCEL_TOKEN. Set it and run again.");
-    process.exit(1);
-  }
+    console.log("Project init – Convex + Clerk + Vercel\n");
+    console.log("This wizard creates cloud projects and writes local env files.");
+    console.log("Press Enter to accept defaults shown in [brackets].\n");
 
-  const displayName = await question("Project display name (e.g. My Awesome App): ");
+    const convexToken = await prompter.promptToken("Convex deploy token", {
+      envVar: "CONVEX_TOKEN",
+      helpText: [
+        "Convex Dashboard → Settings → Deploy Keys → Generate",
+        "https://dashboard.convex.dev",
+      ],
+    });
+    const vercelToken = await prompter.promptToken("Vercel token", {
+      envVar: "VERCEL_TOKEN",
+      helpText: ["https://vercel.com/account/tokens"],
+    });
+
+    const displayName = await prompter.question("Project display name (e.g. My Awesome App): ");
   if (!displayName.trim()) {
     console.error("Display name is required.");
     process.exit(1);
@@ -495,9 +566,9 @@ async function main() {
   const slug = slugify(displayName);
   const compactName = compact(displayName);
   const defaultBundlePrefix = `com.${compactName}`;
-  const bundlePrefix = await question(
-    `Bundle ID prefix (e.g. com.mycompany) [${defaultBundlePrefix}]: `
-  ).then((s) => (s.trim() ? s.trim() : defaultBundlePrefix));
+  const bundlePrefix = await prompter
+    .question(`Bundle ID prefix (e.g. com.mycompany) [${defaultBundlePrefix}]: `)
+    .then((s) => (s.trim() ? s.trim() : defaultBundlePrefix));
 
   console.log("\nDerived:");
   console.log("  slug:", slug);
@@ -562,7 +633,13 @@ async function main() {
         Authorization: `Bearer ${vercelToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name: slug, framework: "nextjs", rootDirectory: "apps/web" }),
+      body: JSON.stringify({
+        name: slug,
+        framework: "nextjs",
+        installCommand: "npm install",
+        buildCommand: "npm run build:web",
+        outputDirectory: "apps/web/.next",
+      }),
     });
     if (!vercelRes.ok) {
       const t = await vercelRes.text();
@@ -575,6 +652,11 @@ async function main() {
     console.error("Vercel setup failed:", e.message);
     process.exit(1);
   }
+
+  const clerkConfig = await setupClerkAutomatically(displayName, prompter, {
+    vercelProjectUrl,
+    slug,
+  });
 
   // --- Replacements ---
   const replacements = [
@@ -636,12 +718,17 @@ async function main() {
     console.error("Failed to update app.json:", e.message);
   }
 
-  // --- Write env files (Convex URL only) ---
+  // --- Write env files ---
   const webEnvLines = [];
   const mobileEnvLines = [];
   if (convexUrl) {
     webEnvLines.push(`NEXT_PUBLIC_CONVEX_URL=${convexUrl}`);
     mobileEnvLines.push(`EXPO_PUBLIC_CONVEX_URL=${convexUrl}`);
+  }
+  if (clerkConfig) {
+    webEnvLines.push(`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${clerkConfig.publishableKey}`);
+    webEnvLines.push(`CLERK_SECRET_KEY=${clerkConfig.secretKey}`);
+    mobileEnvLines.push(`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=${clerkConfig.publishableKey}`);
   }
 
   if (webEnvLines.length) {
@@ -653,25 +740,18 @@ async function main() {
     console.log("Wrote apps/mobile/.env");
   }
 
-  // --- Vercel env vars (Convex URL only) ---
+  // --- Vercel env vars ---
   if (convexUrl) {
-    try {
-      await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(slug)}/env`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${vercelToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          key: "NEXT_PUBLIC_CONVEX_URL",
-          value: convexUrl,
-          type: "plain",
-          target: ["production", "preview", "development"],
-        }),
-      });
-    } catch (e) {
-      console.warn("Vercel env var failed (continuing):", e.message);
-    }
+    await setVercelEnvVar(slug, vercelToken, "NEXT_PUBLIC_CONVEX_URL", convexUrl);
+  }
+  if (clerkConfig) {
+    await setVercelEnvVar(
+      slug,
+      vercelToken,
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      clerkConfig.publishableKey
+    );
+    await setVercelEnvVar(slug, vercelToken, "CLERK_SECRET_KEY", clerkConfig.secretKey);
   }
 
   console.log("\nRunning npm install...");
@@ -707,12 +787,21 @@ async function main() {
       const deployKey = keyData.deployKey;
       if (!deployKey) throw new Error("No deployKey in response");
 
+      const convexDeployEnv = { ...process.env, CONVEX_DEPLOY_KEY: deployKey };
+
+      await writeConvexDeploymentLink({ deploymentName, convexUrl });
+      await prepareConvexAuthEnv(clerkConfig, {
+        convexUrl,
+        deployKey,
+        convexDeployEnv,
+      });
+
       await new Promise((resolve, reject) => {
         const child = spawn("npx", ["convex", "deploy"], {
           cwd: ROOT,
           stdio: "inherit",
           shell: true,
-          env: { ...process.env, CONVEX_DEPLOY_KEY: deployKey },
+          env: convexDeployEnv,
         });
         child.on("exit", (code) =>
           code === 0 ? resolve() : reject(new Error("convex deploy failed"))
@@ -721,18 +810,20 @@ async function main() {
       console.log("Convex deploy done.");
     } catch (e) {
       console.error("Convex deploy failed:", e.message);
+      console.error(
+        "Recovery: set CLERK_JWT_ISSUER_DOMAIN in the Convex dashboard, then run npx convex deploy"
+      );
     }
   }
 
   console.log("\nDeploying to Vercel...");
   try {
-    const webDir = path.join(ROOT, "apps/web");
     await new Promise((resolve, reject) => {
       const child = spawn(
         "npx",
         ["vercel", "link", "--project", slug, "--yes"],
         {
-          cwd: webDir,
+          cwd: ROOT,
           stdio: "inherit",
           shell: true,
           env: { ...process.env, VERCEL_TOKEN: vercelToken },
@@ -760,16 +851,23 @@ async function main() {
     console.log("Vercel deploy done.");
   } catch (e) {
     console.error("Vercel deploy failed:", e.message);
+    console.warn(
+      "Recovery: connect your own GitHub repo in Vercel settings (not the template repo), then run npm run deploy from the project root."
+    );
   }
 
   console.log("\nDone. Next steps:");
-  console.log("  1. Create a Clerk app at https://dashboard.clerk.com");
-  console.log("  2. Add NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY + CLERK_SECRET_KEY to apps/web/.env.local");
-  console.log("  3. Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to apps/mobile/.env");
-  console.log("  4. Set CLERK_JWT_ISSUER_DOMAIN on your Convex deployment (Clerk → JWT templates → Convex)");
-  console.log("  5. Run: npm run dev:all");
-  console.log("  6. Mobile: cd apps/mobile && npx expo run:ios (first time only)");
-  rl.close();
+  if (!clerkConfig) {
+    console.log("  1. Run npm run init again or configure Clerk manually (see README)");
+  } else {
+    console.log("  1. Clerk, Convex, and Vercel are configured for local dev");
+  }
+  console.log("  2. Run: npm run dev:all");
+  console.log("  3. Mobile: cd apps/mobile && npx expo run:ios (first time only)");
+  console.log("  4. Sign up at /signup and verify /dashboard loads");
+  } finally {
+    prompter.close();
+  }
 }
 
 main().catch((e) => {

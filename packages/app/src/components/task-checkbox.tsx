@@ -21,8 +21,8 @@ export function TaskCheckbox({
       accessibilityLabel={accessibilityLabel}
       className={`h-6 w-6 items-center justify-center rounded border ${
         checked
-          ? 'border-primary-500 bg-primary-500'
-          : 'border-outline-300 bg-background-0'
+          ? 'border-primary bg-primary'
+          : 'border-border bg-card'
       }`}
     >
       {checked ? (

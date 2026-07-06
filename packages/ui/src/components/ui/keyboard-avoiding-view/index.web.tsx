@@ -4,36 +4,26 @@ import React from 'react';
 import { flattenWebStyle } from '../../../utils/flatten-web-style';
 
 type KeyboardAvoidingViewProps = React.ComponentPropsWithoutRef<'div'> & {
-  behavior?: 'height' | 'position' | 'padding';
-  keyboardVerticalOffset?: number;
-  contentContainerStyle?: React.CSSProperties;
+  behavior?: 'padding' | 'height' | 'position';
+  style?: React.ComponentProps<'div'>['style'] | Record<string, unknown> | Array<unknown>;
 };
 
 const KeyboardAvoidingView = React.forwardRef<
   HTMLDivElement,
   KeyboardAvoidingViewProps
 >(function KeyboardAvoidingView(
-  {
-    children,
-    behavior: _behavior,
-    keyboardVerticalOffset: _keyboardVerticalOffset,
-    contentContainerStyle: _contentContainerStyle,
-    style,
-    ...props
-  },
-  ref
+  { style, children, behavior: _behavior, className, id, role, tabIndex, 'aria-label': ariaLabel },
+  ref,
 ) {
   return (
     <div
       ref={ref}
-      style={{
-        display: 'flex',
-        flex: 1,
-        flexDirection: 'column',
-        width: '100%',
-        ...flattenWebStyle(style),
-      }}
-      {...props}
+      className={className}
+      id={id}
+      role={role}
+      tabIndex={tabIndex}
+      aria-label={ariaLabel}
+      style={flattenWebStyle(style)}
     >
       {children}
     </div>

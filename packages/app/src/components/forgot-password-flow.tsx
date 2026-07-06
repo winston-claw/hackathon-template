@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Box, Pressable } from "@app-template/ui";
 import { useRouter } from "solito/navigation";
 import {
-  BrutalBody,
-  BrutalButton,
-  BrutalDisplay,
-  BrutalInput,
-  BrutalMono,
-  BrutalSectionLabel,
-} from "./auth-ui";
+  AuthField,
+  AuthMutedText,
+  AuthPrimaryButton,
+  AuthStepHeader,
+} from "./auth-form";
 import { clerkErrorMessage } from "../auth/clerk/clerk-errors";
 import { isSessionExistsError } from "../auth/clerk/is-session-exists-error";
 import {
@@ -301,21 +299,17 @@ export function ForgotPasswordFlow({
 
   if (step === "new-password") {
     return (
-      <View className="flex-col gap-5">
-        <View>
-          <BrutalSectionLabel>ALMOST DONE</BrutalSectionLabel>
-          <BrutalDisplay className="mt-3" size={36}>
-            SET NEW{"\n"}PASSWORD
-          </BrutalDisplay>
-          <BrutalBody className="mt-3 text-brutal-fg-dim" size={14}>
-            Choose a new password with at least 8 characters.
-          </BrutalBody>
-        </View>
+      <Box className="flex-col gap-5">
+        <AuthStepHeader
+          eyebrow="Almost done"
+          title="Set new password"
+          description="Choose a new password with at least 8 characters."
+        />
 
         {error ? <AuthBanner tone="error" message={error} /> : null}
 
-        <BrutalInput
-          label="NEW PASSWORD"
+        <AuthField
+          label="New password"
           placeholder="••••••••"
           value={password}
           onChangeText={setPassword}
@@ -323,20 +317,20 @@ export function ForgotPasswordFlow({
           secureTextEntry
           autoComplete="password-new"
           textContentType="newPassword"
-          helper="MINIMUM 8 CHARACTERS."
+          helper="Minimum 8 characters."
           error={
             touched.password && !passwordIsValid
-              ? "PASSWORD MUST BE AT LEAST 8 CHARACTERS."
+              ? 'Password must be at least 8 characters.'
               : null
           }
         />
 
-        <BrutalButton
-          label={loading ? "Saving password..." : "Set new password"}
+        <AuthPrimaryButton
           onPress={() => void handleSetPassword()}
-          disabled={!canSetPassword}
-          loading={loading}
-        />
+          disabled={!canSetPassword || loading}
+        >
+          {loading ? 'Saving password...' : 'Set new password'}
+        </AuthPrimaryButton>
 
         <Pressable
           onPress={() => {
@@ -349,30 +343,24 @@ export function ForgotPasswordFlow({
           accessibilityLabel="Back to code entry"
           className="self-center"
         >
-          <BrutalMono className="text-brutal-fg-dim" tracking="wide">
-            BACK TO CODE ENTRY
-          </BrutalMono>
+          <AuthMutedText>Back to code entry</AuthMutedText>
         </Pressable>
-      </View>
+      </Box>
     );
   }
 
   return (
-    <View className="flex-col gap-5">
-      <View>
-        <BrutalSectionLabel>RESET ACCESS</BrutalSectionLabel>
-        <BrutalDisplay className="mt-3" size={36}>
-          FORGOT{"\n"}PASSWORD?
-        </BrutalDisplay>
-        <BrutalBody className="mt-3 text-brutal-fg-dim" size={14}>
-          Enter your email and we will send a code to reset your password.
-        </BrutalBody>
-      </View>
+    <Box className="flex-col gap-5">
+      <AuthStepHeader
+        eyebrow="Reset access"
+        title="Forgot password?"
+        description="Enter your email and we will send a code to reset your password."
+      />
 
       {error ? <AuthBanner tone="error" message={error} /> : null}
 
-      <BrutalInput
-        label="EMAIL"
+      <AuthField
+        label="Email"
         placeholder="you@example.com"
         value={email}
         onChangeText={(value) => setEmail(value.trimStart())}
@@ -383,16 +371,16 @@ export function ForgotPasswordFlow({
         autoComplete="email"
         textContentType="emailAddress"
         error={
-          touched.email && !emailIsValid ? "USE A VALID EMAIL FORMAT." : null
+          touched.email && !emailIsValid ? 'Enter a valid email address.' : null
         }
       />
 
-      <BrutalButton
-        label={loading ? "Sending code..." : "Send reset code"}
+      <AuthPrimaryButton
         onPress={() => void handleSendCode()}
-        disabled={!canSendCode}
-        loading={loading}
-      />
+        disabled={!canSendCode || loading}
+      >
+        {loading ? 'Sending code...' : 'Send reset code'}
+      </AuthPrimaryButton>
 
       <Pressable
         onPress={onBack}
@@ -400,10 +388,8 @@ export function ForgotPasswordFlow({
         accessibilityLabel="Back to sign in"
         className="self-center"
       >
-        <BrutalMono className="text-brutal-fg-dim" tracking="wide">
-          BACK TO SIGN IN
-        </BrutalMono>
+        <AuthMutedText>Back to sign in</AuthMutedText>
       </Pressable>
-    </View>
+    </Box>
   );
 }

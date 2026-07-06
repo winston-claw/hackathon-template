@@ -1,18 +1,19 @@
 'use client';
 import React from 'react';
 import { createPressable } from '@gluestack-ui/core/pressable/creator';
-import { Pressable as RNPressable } from 'react-native';
+import { Pressable as RNPressable } from '../../../rn-primitives';
 
+import { cssInterop } from '../../../nativewind-compat';
 import { tva } from '@gluestack-ui/utils/nativewind-utils';
 import { withStyleContext } from '@gluestack-ui/utils/nativewind-utils';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
 
 const UIPressable = createPressable({
-  Root: withStyleContext(RNPressable),
+  Root: cssInterop(withStyleContext(RNPressable), { className: 'style' }),
 });
 
 const pressableStyle = tva({
-  base: 'data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-indicator-info data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40',
+  base: 'data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-ring data-[focus-visible=true]:ring-2 data-[disabled=true]:opacity-40',
 });
 
 type IPressableProps = Omit<

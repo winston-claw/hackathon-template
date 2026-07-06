@@ -3,82 +3,111 @@
 import React from 'react';
 import { flattenWebStyle } from '../../../utils/flatten-web-style';
 
+type RNStyle =
+  | React.ComponentProps<'div'>['style']
+  | Record<string, unknown>
+  | Array<React.ComponentProps<'div'>['style'] | Record<string, unknown>>;
+
 type ScrollViewProps = Omit<
   React.ComponentPropsWithoutRef<'div'>,
-  'contentContainerStyle'
+  'style' | 'children'
 > & {
   className?: string;
-  contentContainerStyle?: React.CSSProperties;
+  style?: RNStyle | RNStyle[];
+  contentContainerClassName?: string;
+  contentContainerStyle?: RNStyle | RNStyle[];
   horizontal?: boolean;
   pagingEnabled?: boolean;
-  keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
-  showsVerticalScrollIndicator?: boolean;
   showsHorizontalScrollIndicator?: boolean;
-  keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
-  refreshControl?: React.ReactNode;
-  onMomentumScrollEnd?: (event: unknown) => void;
-  onScroll?: (event: unknown) => void;
-  scrollEventThrottle?: number;
+  showsVerticalScrollIndicator?: boolean;
+  keyboardShouldPersistTaps?: boolean | 'always' | 'never' | 'handled';
   scrollEnabled?: boolean;
-  stickyHeaderIndices?: number[];
-  centerContent?: boolean;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
+  onMomentumScrollEnd?: React.UIEventHandler<HTMLDivElement>;
+  refreshControl?: React.ReactNode;
+  children?: React.ReactNode;
 };
 
 const ScrollView = React.forwardRef<HTMLDivElement, ScrollViewProps>(
-  function ScrollView(props, ref) {
-    const {
+  function ScrollView(
+    {
       className,
-      contentContainerStyle,
-      children,
-      horizontal: _horizontal,
-      pagingEnabled: _pagingEnabled,
-      keyboardShouldPersistTaps: _keyboardShouldPersistTaps,
-      showsVerticalScrollIndicator: _showsVerticalScrollIndicator,
-      showsHorizontalScrollIndicator: _showsHorizontalScrollIndicator,
-      keyboardDismissMode: _keyboardDismissMode,
-      refreshControl: _refreshControl,
-      onMomentumScrollEnd: _onMomentumScrollEnd,
-      onScroll: _onScroll,
-      scrollEventThrottle: _scrollEventThrottle,
-      scrollEnabled: _scrollEnabled,
-      stickyHeaderIndices: _stickyHeaderIndices,
-      centerContent: _centerContent,
       style,
-      ...domProps
-    } = props;
+      contentContainerClassName,
+      contentContainerStyle,
+      horizontal = false,
+      pagingEnabled = false,
+      showsHorizontalScrollIndicator,
+      showsVerticalScrollIndicator,
+      keyboardShouldPersistTaps: _keyboardShouldPersistTaps,
+      scrollEnabled = true,
+      onScroll,
+      onMomentumScrollEnd,
+      refreshControl: _refreshControl,
+      children,
+    },
+    ref,
+  ) {
+    const outerStyle: React.CSSProperties = {
+      ...flattenWebStyle(style as Parameters<typeof flattenWebStyle>[0]),
+      overflowX: horizontal ? 'auto' : undefined,
+      overflowY: horizontal ? undefined : 'auto',
+      ...(scrollEnabled === false ? { overflow: 'hidden' } : {}),
+      ...(horizontal ? { display: 'flex', flexDirection: 'row' } : {}),
+      ...(pagingEnabled && horizontal
+        ? { scrollSnapType: 'x mandatory' as const }
+        : {}),
+      ...(showsHorizontalScrollIndicator === false && horizontal
+        ? { scrollbarWidth: 'none' as const }
+        : {}),
+      ...(showsVerticalScrollIndicator === false && !horizontal
+        ? { scrollbarWidth: 'none' as const }
+        : {}),
+    };
+
+    const innerStyle = flattenWebStyle(
+      contentContainerStyle as Parameters<typeof flattenWebStyle>[0],
+    );
+
+    const handleScroll: React.UIEventHandler<HTMLDivElement> = (event) => {
+      onScroll?.(event);
+    };
+
+    const handleScrollEnd: React.UIEventHandler<HTMLDivElement> = (event) => {
+      onMomentumScrollEnd?.(event);
+    };
+
+    const hasInnerWrapper =
+      contentContainerClassName != null || contentContainerStyle != null;
+
+    if (hasInnerWrapper) {
+      return (
+        <div
+          ref={ref}
+          className={className}
+          style={outerStyle}
+          onScroll={handleScroll}
+          onScrollEnd={handleScrollEnd}
+        >
+          <div className={contentContainerClassName} style={innerStyle}>
+            {children}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div
         ref={ref}
         className={className}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'stretch',
-          width: '100%',
-          overflowY: _horizontal ? 'hidden' : 'auto',
-          overflowX: _horizontal ? 'auto' : 'hidden',
-          flex: 1,
-          minHeight: 0,
-          boxSizing: 'border-box',
-          ...flattenWebStyle(style),
-        }}
-        {...domProps}
+        style={outerStyle}
+        onScroll={handleScroll}
+        onScrollEnd={handleScrollEnd}
       >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            boxSizing: 'border-box',
-            width: '100%',
-            ...flattenWebStyle(contentContainerStyle),
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
     );
-  }
+  },
 );
 
 ScrollView.displayName = 'ScrollView';

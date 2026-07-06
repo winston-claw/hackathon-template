@@ -40,6 +40,15 @@ Both shells must include `SafeAreaProvider` around the app tree (already in `_la
 
 Platform routes and callbacks must never render `error.message` directly. Use `getUserFacingErrorMessage()` from `@app-template/app` — it maps backend `AppErrorCode` values to UI copy.
 
+## Gluestack v5 platform wiring
+
+Both apps import `@app-template/ui/global.css`. Do not add `tailwind.config.js` or `nativewind/babel`.
+
+- **Web:** PostCSS via `@tailwindcss/postcss` (`apps/web/postcss.config.js`). `next.config.mjs` transpiles `nativewind`, `react-native-css`, `@gluestack-ui/*` and defines `__DEV__` for RN-web SSR. No `@gluestack/ui-next-adapter`.
+- **Mobile:** Metro uses `withNativewind` from `nativewind/metro` with `input` pointing to `packages/ui/global.css`. Babel uses `babel-preset-expo` only (no NativeWind babel plugin). Rebuild dev client after native/Metro config changes.
+
+Types: `react-native-css-env.d.ts` in each app (not `nativewind-env.d.ts`).
+
 ## Web + react-native-web
 
 - Shared screens transpile via `next.config.mjs` (`transpilePackages`, `react-native-web` alias).
